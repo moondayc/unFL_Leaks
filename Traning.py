@@ -101,7 +101,7 @@ if __name__ == "__main__":
     opti = torch.optim.SGD(net.parameters(), lr=0.01)  # lr学习率
     local_epoch = 100
     local_batchsize = 20
-    lossfun = torch.nn.MSELoss()
+    # lossfun = torch.nn.MSELoss()
     # trainloader, testloader, dev, net, opti, local_epoch = 10, local_batchsize = 128, loss_fun = nn.CrossEntropyLoss()
     for i in range(5):
         training_pro = ClientTrainer(i, trainloader, testloader, dev, net, opti, local_epoch, local_batchsize,)

@@ -62,7 +62,7 @@ print(len(trainloader))
 
 # 分割数据
 # 将训练集分成 n 个部分
-n = 10
+n = 1
 train_data = trainset.data.numpy()
 train_labels = trainset.targets.numpy()
 train_data_parts = np.array_split(train_data, n)
@@ -72,9 +72,14 @@ test_data = testset.data.numpy()
 test_labels = testset.targets.numpy()
 test_data_parts = np.array_split(test_data, n)
 test_labels_parts = np.array_split(train_labels_parts, n)
-
 for i in range(n):
-    np.save(f'data/train_data_part_{i}.npy', train_data_parts[i])
-    np.save(f'data/train_labels_part_{i}.npy', train_labels_parts[i])
-    np.save(f'data/test_data_part_{i}.npy', train_data_parts[i])
-    np.save(f'data/test_labels_part_{i}.npy', train_labels_parts[i])
+    np.save(f'data/Completed_dataset/train_data.npy', train_data_parts[i])
+    np.save(f'data/Completed_dataset/train_labels.npy', train_labels_parts[i])
+    np.save(f'data/Completed_dataset/test_data.npy', train_data_parts[i])
+    np.save(f'data/Completed_dataset/test_labels.npy', train_labels_parts[i])
+
+# for i in range(n):
+#     np.save(f'data/train_data_part_{i}.npy', train_data_parts[i])
+#     np.save(f'data/train_labels_part_{i}.npy', train_labels_parts[i])
+#     np.save(f'data/test_data_part_{i}.npy', train_data_parts[i])
+#     np.save(f'data/test_labels_part_{i}.npy', train_labels_parts[i])
