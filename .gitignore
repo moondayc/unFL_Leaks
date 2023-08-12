@@ -1,3 +1,5 @@
 .idea
 data
 *.npy
+model
+try.py
