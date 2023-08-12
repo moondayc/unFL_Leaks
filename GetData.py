@@ -58,28 +58,36 @@ trainloader = torch.utils.data.DataLoader(trainset, batch_size=64, shuffle=True)
 testset = torchvision.datasets.MNIST(root='data/MNIST', train=False, download=True, transform=transform)
 testloader = torch.utils.data.DataLoader(testset, batch_size=64, shuffle=False)
 
-print(len(trainloader))
-
+print("训练数据总数：{}".format(len(trainset)))
+print("测试数据总数：{}".format(len(testset)))
 # 分割数据
 # 将训练集分成 n 个部分
-n = 1
+train_n = 22
+test_n = 20
 train_data = trainset.data.numpy()
 train_labels = trainset.targets.numpy()
-train_data_parts = np.array_split(train_data, n)
-train_labels_parts = np.array_split(train_labels, n)
+train_data_parts = np.array_split(train_data, train_n)
+train_labels_parts = np.array_split(train_labels, train_n)
 
 test_data = testset.data.numpy()
 test_labels = testset.targets.numpy()
-test_data_parts = np.array_split(test_data, n)
-test_labels_parts = np.array_split(train_labels_parts, n)
-for i in range(n):
-    np.save(f'data/Completed_dataset/train_data.npy', train_data_parts[i])
-    np.save(f'data/Completed_dataset/train_labels.npy', train_labels_parts[i])
-    np.save(f'data/Completed_dataset/test_data.npy', train_data_parts[i])
-    np.save(f'data/Completed_dataset/test_labels.npy', train_labels_parts[i])
-
+test_data_parts = np.array_split(test_data, test_n)
+test_labels_parts = np.array_split(train_labels, test_n)
 # for i in range(n):
-#     np.save(f'data/train_data_part_{i}.npy', train_data_parts[i])
-#     np.save(f'data/train_labels_part_{i}.npy', train_labels_parts[i])
-#     np.save(f'data/test_data_part_{i}.npy', train_data_parts[i])
-#     np.save(f'data/test_labels_part_{i}.npy', train_labels_parts[i])
+#     np.save(f'data/Completed_dataset/train_data.npy', train_data_parts[i])
+#     np.save(f'data/Completed_dataset/train_labels.npy', train_labels_parts[i])
+#     np.save(f'data/Completed_dataset/test_data.npy', train_data_parts[i])
+#     np.save(f'data/Completed_dataset/test_labels.npy', train_labels_parts[i])
+
+for i in range(11):
+    np.save(f'data/shadow_train_data_part_{i}.npy', train_data_parts[i])
+    np.save(f'data/shadow_train_label_part_{i}.npy', train_labels_parts[i])
+for i in range(11, train_n):
+    np.save(f'data/target_train_data_part_{i-11}.npy', train_data_parts[i])
+    np.save(f'data/target_train_label_part_{i-11}.npy', train_labels_parts[i])
+for i in range(10):
+    np.save(f'data/shadow_test_data_part_{i}.npy', train_data_parts[i])
+    np.save(f'data/shadow_test_label_part_{i}.npy', train_labels_parts[i])
+for i in range(10, train_n):
+    np.save(f'data/target_test_data_part_{i-10}.npy', train_data_parts[i])
+    np.save(f'data/target_test_label_part_{i-10}.npy', train_labels_parts[i])
