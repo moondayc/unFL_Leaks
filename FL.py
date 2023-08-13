@@ -54,11 +54,11 @@ def ClientTraining(args):
     return new_parameter, acc
 
 
-def all_evaluate(new_parameter, model):
+def all_evaluate(new_parameter, model, all_test_path):
     model.load_state_dict(new_parameter)
-    testdata0 = np.load("data/Completed_dataset/test_data.npy")
+    testdata0 = np.load(all_test_path[0])
     testdata0 = torch.Tensor(testdata0).unsqueeze(1)
-    testlabels0 = np.load("data/Completed_dataset/test_labels.npy")
+    testlabels0 = np.load(all_test_path[1])
     testset0 = torch.utils.data.TensorDataset(torch.Tensor(testdata0), torch.Tensor(testlabels0))
     testloader = torch.utils.data.DataLoader(testset0, batch_size=20, shuffle=True)
     dev = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
@@ -84,24 +84,22 @@ def vector_to_net(vec, net_shape):
 
 
 class FederatedTrainer:
-    def __init__(self, client_number, original_model_name, initial_parameters_path=None):
+    def __init__(self, client_number, original_model_name, initial_parameters_path):
         self.client_number = client_number
         self.original_model_name = original_model_name
         self.model = determining_original_model(self.original_model_name)
-        if not initial_parameters_path:
-            self.initial_parameters_path = "model/initial_parameters.npy"  # 初始模型路径
-        else:
-            self.initial_parameters_path = initial_parameters_path
+        self.initial_parameters_path = initial_parameters_path
 
     def training(self, max_agg_number, model_path, local_epoch, local_batch_size, data_path, unlearning_id=None):
         # model_path，训练的模型保存路径
-        train_data, train_label, test_data, test_label = data_path
+        train_data, train_label, test_data, test_label, all_test = data_path
         if unlearning_id:
             process_args = [
                 {"global_parameter_path": self.initial_parameters_path, "client": cid, "local_epoch": local_epoch,
                  "local_batch_size": local_batch_size, "original_model_name": self.original_model_name,
                  "train_data": train_data.format(cid), "train_label": train_label.format(cid),
-                 "test_data": test_data.format(cid), "test_label": test_label.format(cid)}
+                 "test_data": test_data.format(cid), "test_label": test_label.format(cid)
+                 }
                 for
                 cid in range(self.client_number) if cid not in unlearning_id]
         else:
@@ -141,7 +139,7 @@ class FederatedTrainer:
 
             # 计算聚合后的模型在所有测试集下的准确率
 
-            acc = all_evaluate(global_parameters, self.model)
+            acc = all_evaluate(global_parameters, self.model, all_test)
             if unlearning_id:
                 print("unlearning id = {}".format(unlearning_id))
             print("完成第{}次聚合训练".format(k + 1))
@@ -170,6 +168,6 @@ if __name__ == "__main__":
     #         initial_parameters[key] = var.clone()
     # np.save("initial_parameters.npy", initial_parameters)
     print("全局变量初始化完成")
-    FTrainer = FederatedTrainer(client_number, net)
+    FTrainer = FederatedTrainer(client_number, net, "model/shadow_initial_parameters.npy")
     agg_number = 10
     FTrainer.training(agg_number, "model/original_model.npy")

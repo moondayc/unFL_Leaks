@@ -19,7 +19,7 @@ def get_args():
     # ------- 联邦学习相关参数
     parser.add_argument("-cn", "--client_number", default=10,
                         help="number of clients participating in aggregation")
-    parser.add_argument('-max', "--max_aggregation_round", default=10,
+    parser.add_argument('-max', "--max_aggregation_round", default=100,
                         help="the maximum aggregation count")
 
     # ----- shadow 训练的相关参数

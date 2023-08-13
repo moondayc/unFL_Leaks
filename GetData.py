@@ -72,12 +72,8 @@ train_labels_parts = np.array_split(train_labels, train_n)
 test_data = testset.data.numpy()
 test_labels = testset.targets.numpy()
 test_data_parts = np.array_split(test_data, test_n)
-test_labels_parts = np.array_split(train_labels, test_n)
-# for i in range(n):
-#     np.save(f'data/Completed_dataset/train_data.npy', train_data_parts[i])
-#     np.save(f'data/Completed_dataset/train_labels.npy', train_labels_parts[i])
-#     np.save(f'data/Completed_dataset/test_data.npy', train_data_parts[i])
-#     np.save(f'data/Completed_dataset/test_labels.npy', train_labels_parts[i])
+test_labels_parts = np.array_split(test_labels, test_n)
+
 
 for i in range(11):
     np.save(f'data/shadow_train_data_part_{i}.npy', train_data_parts[i])
@@ -86,8 +82,22 @@ for i in range(11, train_n):
     np.save(f'data/target_train_data_part_{i-11}.npy', train_data_parts[i])
     np.save(f'data/target_train_label_part_{i-11}.npy', train_labels_parts[i])
 for i in range(10):
-    np.save(f'data/shadow_test_data_part_{i}.npy', train_data_parts[i])
-    np.save(f'data/shadow_test_label_part_{i}.npy', train_labels_parts[i])
-for i in range(10, train_n):
-    np.save(f'data/target_test_data_part_{i-10}.npy', train_data_parts[i])
-    np.save(f'data/target_test_label_part_{i-10}.npy', train_labels_parts[i])
+    print("{} data:{}  label:{}".format(i, len(test_data_parts[i]), len(test_labels_parts[i])))
+    np.save(f'data/shadow_test_data_part_{i}.npy', test_data_parts[i])
+    np.save(f'data/shadow_test_label_part_{i}.npy', test_labels_parts[i])
+for i in range(10, test_n):
+    np.save(f'data/target_test_data_part_{i-10}.npy', test_data_parts[i])
+    np.save(f'data/target_test_label_part_{i-10}.npy', test_labels_parts[i])
+
+
+#  将测试集合成两部分
+# shadow
+shadow_test_data = np.concatenate([test_data_parts[i] for i in range(10)])
+shadow_test_label = np.concatenate([test_labels_parts[i] for i in range(10)])
+np.save(f'data/Completed_dataset/shadow_test_data.npy', shadow_test_data)
+np.save(f'data/Completed_dataset/shadow_test_label.npy', shadow_test_label)
+# target
+target_test_data = np.concatenate([test_data_parts[i] for i in range(10, test_n)])
+target_test_label = np.concatenate([test_labels_parts[i] for i in range(10, test_n)])
+np.save(f'data/Completed_dataset/target_test_data.npy', target_test_data)
+np.save(f'data/Completed_dataset/target_test_label.npy', target_test_label)

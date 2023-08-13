@@ -1,9 +1,5 @@
-import torch
+import numpy as np
 
-a = torch.Tensor([1, 2, 3])
-b = torch.Tensor([0, 0, 0])
-c = torch.cat([a, b])
-print(c)
-print(c.data)
-print(c.detach)
+a = np.array([[1,1,1],[1,1,1]])
+b = np.array([[2,2],[2,2,2]])
 
