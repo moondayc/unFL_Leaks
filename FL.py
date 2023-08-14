@@ -62,7 +62,7 @@ def all_evaluate(new_parameter, model, test_path, uid):
     testdata = torch.Tensor(np.concatenate(testdata0))
     testdata = testdata.unsqueeze(1)
     testlabels0 = [np.load(test_path[1].format(cid)) for cid in range(10) if cid not in uid]
-    testlabels = torch.Tensor(np.concatenate(testdata0))
+    testlabels = torch.Tensor(np.concatenate(testlabels0))
     testset0 = torch.utils.data.TensorDataset(torch.Tensor(testdata), torch.Tensor(testlabels))
     testloader = torch.utils.data.DataLoader(testset0, batch_size=20, shuffle=True)
     dev = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
@@ -97,7 +97,7 @@ class FederatedTrainer:
     def training(self, max_agg_number, model_path, local_epoch, local_batch_size, data_path, unlearning_id=None):
         # model_path，训练的模型保存路径
         train_data, train_label, test_data, test_label, all_test = data_path
-        if unlearning_id:
+        if not unlearning_id:
             unlearning_id = []
         process_args = [
             {"global_parameter_path": self.initial_parameters_path, "client": cid, "local_epoch": local_epoch,

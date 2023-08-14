@@ -47,16 +47,16 @@ class AttackModelTrainer(Exp):
         self.shadow_test_data_paths = "data/slice/shadow_test_data_{}.npy"
         self.shadow_test_label_paths = "data/slice/shadow_test_label_{}.npy"
         self.shadow_negative_data_path = "data/shadow_negative_data.npy"
-        self.shadow_all_test_path = ["data/Completed_dataset/shadow_test_data.npy",
-                                     "data/Completed_dataset/shadow_test_label.npy"]
+        self.shadow_all_test_path = ["data/slice/shadow_test_data_{}.npy",
+                                     "data/slice/shadow_test_label_{}.npy"]
         # target数据路径
         self.target_train_data_paths = "data/slice/target_train_data_{}.npy"
         self.target_train_label_paths = "data/slice/target_train_label_{}.npy"
         self.target_test_data_paths = "data/slice/target_test_data_{}.npy"
         self.target_test_label_paths = "data/slice/target_test_label_{}.npy"
         self.target_negative_data_path = "data/target_negative_data.npy"
-        self.target_all_test_path = ["data/Completed_dataset/target_test_data.npy",
-                                     "data/Completed_dataset/target_test_label.npy"]
+        self.target_all_test_path = ["data/slice/target_test_data_{}.npy",
+                                     "data/slice/target_test_label_{}.npy"]
         # 模型路径
         self.shadow_initial_model_path = "model/shadow_initial_parameters.npy"
         self.shadow_original_model_path = "model/shadow_original_model.npy"
