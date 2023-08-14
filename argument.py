@@ -8,7 +8,7 @@ def get_args():
 
     # 初始模型结构和攻击模型结构
     parser.add_argument("-om", "--original_model_name", default="lenet")  # 原始模型的类别
-    parser.add_argument("-am", "--attack_model_name", default="RF",
+    parser.add_argument("-am", "--attack_model_name", default="DT",
                         choices=['DT', 'MLP', 'LR', 'RF'], help="attack model")  # 攻击模型的类别
     # ------- 本地模型训练参数
     parser.add_argument("-batch", "--local_batch_size", default=20,

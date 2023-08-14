@@ -50,7 +50,7 @@ transform = transforms.Compose([
     transforms.Normalize((0.5,), (0.5,))
 ])
 
-# Load the training set
+# # Load the training set
 trainset = torchvision.datasets.MNIST(root='data/MNIST', train=True, download=True, transform=transform)
 trainloader = torch.utils.data.DataLoader(trainset, batch_size=64, shuffle=True)
 
@@ -62,42 +62,56 @@ print("训练数据总数：{}".format(len(trainset)))
 print("测试数据总数：{}".format(len(testset)))
 # 分割数据
 # 将训练集分成 n 个部分
-train_n = 22
+train_n = 40
 test_n = 20
 train_data = trainset.data.numpy()
 train_labels = trainset.targets.numpy()
-train_data_parts = np.array_split(train_data, train_n)
-train_labels_parts = np.array_split(train_labels, train_n)
+# train_data_parts = np.array_split(train_data, train_n)
+# train_labels_parts = np.array_split(train_labels, train_n)
 
 test_data = testset.data.numpy()
 test_labels = testset.targets.numpy()
 test_data_parts = np.array_split(test_data, test_n)
 test_labels_parts = np.array_split(test_labels, test_n)
 
+# 先将数据分成四个部分
+train_data_parts = np.array_split(train_data, 4)
+train_labels_parts = np.array_split(train_labels, 4)
 
-for i in range(11):
-    np.save(f'data/shadow_train_data_part_{i}.npy', train_data_parts[i])
-    np.save(f'data/shadow_train_label_part_{i}.npy', train_labels_parts[i])
-for i in range(11, train_n):
-    np.save(f'data/target_train_data_part_{i-11}.npy', train_data_parts[i])
-    np.save(f'data/target_train_label_part_{i-11}.npy', train_labels_parts[i])
+# 将前两个保存成反向数据
+np.save("data/slice/shadow_negative_data.npy", train_data_parts[0])
+print("shadow:反向数据的数量：{}".format(len(train_data_parts[0])))
+np.save("data/slice/target_negative_data.npy", train_data_parts[1])
+print("target:反向数据的数量：{}".format(len(train_data_parts[1])))
+
+np.save("data/slice/shadow_negative_label.npy", train_labels_parts[0])
+np.save("data/slice/target_negative_label.npy", train_labels_parts[1])
+
+# 将测试集分成的20部分
+
+# 第三份分成shadow的训练集，和前半部分的测试集
+shadow_train_data_parts = np.array_split(train_data_parts[2], 10)
+shadow_train_labels_parts = np.array_split(train_labels_parts[2], 10)
 for i in range(10):
-    print("{} data:{}  label:{}".format(i, len(test_data_parts[i]), len(test_labels_parts[i])))
-    np.save(f'data/shadow_test_data_part_{i}.npy', test_data_parts[i])
-    np.save(f'data/shadow_test_label_part_{i}.npy', test_labels_parts[i])
-for i in range(10, test_n):
-    np.save(f'data/target_test_data_part_{i-10}.npy', test_data_parts[i])
-    np.save(f'data/target_test_label_part_{i-10}.npy', test_labels_parts[i])
+    np.save("data/slice/shadow_train_data_{}.npy".format(i), shadow_train_data_parts[i])
+    np.save("data/slice/shadow_train_label_{}.npy".format(i), shadow_train_labels_parts[i])
+
+    np.save("data/slice/shadow_test_data_{}.npy".format(i), test_data_parts[i])
+    np.save("data/slice/shadow_test_label_{}.npy".format(i), test_labels_parts[i])
+
+    print("shadow: 客户端{}的训练数据量:{}".format(i, len(shadow_train_data_parts[i])))
+    print("shadow: 客户端{}的测试数据量:{}".format(i, len(test_data_parts[i])))
 
 
-#  将测试集合成两部分
-# shadow
-shadow_test_data = np.concatenate([test_data_parts[i] for i in range(10)])
-shadow_test_label = np.concatenate([test_labels_parts[i] for i in range(10)])
-np.save(f'data/Completed_dataset/shadow_test_data.npy', shadow_test_data)
-np.save(f'data/Completed_dataset/shadow_test_label.npy', shadow_test_label)
-# target
-target_test_data = np.concatenate([test_data_parts[i] for i in range(10, test_n)])
-target_test_label = np.concatenate([test_labels_parts[i] for i in range(10, test_n)])
-np.save(f'data/Completed_dataset/target_test_data.npy', target_test_data)
-np.save(f'data/Completed_dataset/target_test_label.npy', target_test_label)
+# 第四份分成target的训练集
+target_train_data_parts = np.array_split(train_data_parts[3], 10)
+target_train_labels_parts = np.array_split(train_labels_parts[3], 10)
+for i in range(10):
+    np.save("data/slice/target_train_data_{}.npy".format(i), target_train_data_parts[i])
+    np.save("data/slice/target_train_label_{}.npy".format(i), target_train_labels_parts[i])
+
+    np.save("data/slice/target_test_data_{}.npy".format(i), test_data_parts[i+10])
+    np.save("data/slice/target_test_label_{}.npy".format(i), test_labels_parts[i+10])
+
+    print("target: 客户端{}的训练数据量:{}".format(i, len(target_train_data_parts[i])))
+    print("target: 客户端{}的测试数据量:{}".format(i, len(test_data_parts[i+10])))

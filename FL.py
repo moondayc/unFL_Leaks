@@ -147,14 +147,15 @@ class FederatedTrainer:
             acc_line.append(acc)
             # 确定最新的参数
             if len(acc_line) >= 2 and acc_line[-2] >= acc_line[-1]:
-                print("训练结束，保留第{}轮聚合的参数，全局参数保存在{}".format(k, model_path))
-                return
+                print("训练结束，拟合成功，保留第{}轮聚合的参数，全局参数保存在{}".format(k, model_path))
+                return k, acc_line[-2]
             # 更新参数
             for i in range(len(process_args)):
                 process_args[i]["global parameter path"] = model_path
 
             k += 1
         print("训练结束，保留第{}轮聚合的参数，全局参数保存在{}".format(k, model_path))
+        return k, acc_line[-1]
         # plt.plot(range(len(acc_line)), acc_line)
         # plt.show()
 

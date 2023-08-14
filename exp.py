@@ -22,7 +22,7 @@ class Exp:
         self.attack_model_name = args["attack_model_name"]
         self.attack_model = None
         assert self.unlearning_round <= self.client_number, "去学习个数应该小于客户端个数"
-        current_time = datetime.now().strftime("%d_%H-%M")
+        current_time = datetime.now().strftime("%d_%H_%M")
         file_handler = logging.FileHandler(
             'log/{}_{}_{}_{}.log'.format(current_time, self.dataset_name, self.original_model_name,
                                          self.attack_model_name))
@@ -86,17 +86,19 @@ class AttackModelTrainer(Exp):
         ftrainer = FederatedTrainer(self.client_number, self.original_model_name, self.shadow_initial_model_path)
         data_path = [self.shadow_train_data_paths, self.shadow_train_label_paths, self.shadow_test_data_paths,
                      self.shadow_test_label_paths, self.shadow_all_test_path]
-        ftrainer.training(self.max_agg_round, self.shadow_original_model_path, self.local_epoch, self.local_batch_size,
+        k, acc = ftrainer.training(self.max_agg_round, self.shadow_original_model_path, self.local_epoch, self.local_batch_size,
                           data_path)
-        self.logger.info('shadow初始模型训练完成')
+        self.logger.info("shadow:初始模型聚合{}轮次, 全训练模型准确率为{}".format(k, acc))
+        self.logger.info('shadow:初始模型训练完成')
 
         self.logger.info('开始训练shadow去学习模型.....')
         for un in tqdm(range(self.unlearning_round)):
             self.logger.info("unlearning id = {}".format(un))
             unlearning_model_path = self.shadow_unlearning_model_path.format(un)
-            ftrainer.training(self.max_agg_round, unlearning_model_path, self.local_epoch, self.local_batch_size,
+            k, acc = ftrainer.training(self.max_agg_round, unlearning_model_path, self.local_epoch, self.local_batch_size,
                               data_path, [un])
-        self.logger.info('shadow 模型训练完成')
+            self.logger.info("shadow:第{}个去学习模型聚合{}轮次, 全训练模型准确率为{}".format(un, k,acc))
+        self.logger.info('shadow:模型训练完成')
 
     def construct_dataset(self, flag):
         # 构造数据集
@@ -174,17 +176,19 @@ class AttackModelTrainer(Exp):
         ttrainer = FederatedTrainer(self.client_number, self.original_model_name, self.target_initial_model_path)
         data_path = [self.target_train_data_paths, self.target_train_label_paths, self.target_test_data_paths,
                      self.target_test_label_paths, self.target_all_test_path]
-        ttrainer.training(self.max_agg_round, self.target_original_model_path, self.local_epoch, self.local_batch_size,
+        k, acc = ttrainer.training(self.max_agg_round, self.target_original_model_path, self.local_epoch, self.local_batch_size,
                           data_path)
-        self.logger.info('target初始模型训练完成')
+        self.logger.info("target:初始模型聚合{}轮次, 全训练模型准确率为{}".format(k, acc))
+        self.logger.info('target:初始模型训练完成')
 
         self.logger.info('开始训练target去学习模型.....')
         for un in tqdm(range(self.unlearning_round)):
             self.logger.info("unlearning id = {}".format(un))
             unlearning_model_path = self.target_unlearning_model_path.format(un)
-            ttrainer.training(self.max_agg_round, unlearning_model_path, self.local_epoch, self.local_batch_size,
+            k, acc = ttrainer.training(self.max_agg_round, unlearning_model_path, self.local_epoch, self.local_batch_size,
                               data_path, [un])
-        self.logger.info('shadow 模型训练完成')
+            self.logger.info("target第{}个去学习模型聚合{}轮次, 全训练模型准确率为{}".format(un, k,acc))
+        self.logger.info('target:模型训练完成')
 
     def evaluate_attack_model(self, x, y):
         acc = self.attack_model.test_model_acc(x, y)
