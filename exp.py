@@ -42,19 +42,19 @@ class AttackModelTrainer(Exp):
         super(AttackModelTrainer, self).__init__(args)
         self.model = determining_original_model(self.original_model_name)
         # shadow数据路径
-        self.shadow_train_data_paths = "data/shadow_train_data_part_{}.npy"
-        self.shadow_train_label_paths = "data/shadow_train_label_part_{}.npy"
-        self.shadow_test_data_paths = "data/shadow_test_data_part_{}.npy"
-        self.shadow_test_label_paths = "data/shadow_test_label_part_{}.npy"
-        self.shadow_negative_data_path = "data/shadow_train_data_part_10.npy"
+        self.shadow_train_data_paths = "data/slice/shadow_train_data_{}.npy"
+        self.shadow_train_label_paths = "data/slice/shadow_train_label_{}.npy"
+        self.shadow_test_data_paths = "data/slice/shadow_test_data_{}.npy"
+        self.shadow_test_label_paths = "data/slice/shadow_test_label_{}.npy"
+        self.shadow_negative_data_path = "data/shadow_negative_data.npy"
         self.shadow_all_test_path = ["data/Completed_dataset/shadow_test_data.npy",
                                      "data/Completed_dataset/shadow_test_label.npy"]
         # target数据路径
-        self.target_train_data_paths = "data/target_train_data_part_{}.npy"
-        self.target_train_label_paths = "data/target_train_label_part_{}.npy"
-        self.target_test_data_paths = "data/target_test_data_part_{}.npy"
-        self.target_test_label_paths = "data/target_test_label_part_{}.npy"
-        self.target_negative_data_path = "data/target_train_data_part_10.npy"
+        self.target_train_data_paths = "data/slice/target_train_data_{}.npy"
+        self.target_train_label_paths = "data/slice/target_train_label_{}.npy"
+        self.target_test_data_paths = "data/slice/target_test_data_{}.npy"
+        self.target_test_label_paths = "data/slice/target_test_label_{}.npy"
+        self.target_negative_data_path = "data/target_negative_data.npy"
         self.target_all_test_path = ["data/Completed_dataset/target_test_data.npy",
                                      "data/Completed_dataset/target_test_label.npy"]
         # 模型路径
@@ -86,8 +86,9 @@ class AttackModelTrainer(Exp):
         ftrainer = FederatedTrainer(self.client_number, self.original_model_name, self.shadow_initial_model_path)
         data_path = [self.shadow_train_data_paths, self.shadow_train_label_paths, self.shadow_test_data_paths,
                      self.shadow_test_label_paths, self.shadow_all_test_path]
-        k, acc = ftrainer.training(self.max_agg_round, self.shadow_original_model_path, self.local_epoch, self.local_batch_size,
-                          data_path)
+        k, acc = ftrainer.training(self.max_agg_round, self.shadow_original_model_path, self.local_epoch,
+                                   self.local_batch_size,
+                                   data_path)
         self.logger.info("shadow:初始模型聚合{}轮次, 全训练模型准确率为{}".format(k, acc))
         self.logger.info('shadow:初始模型训练完成')
 
@@ -95,9 +96,10 @@ class AttackModelTrainer(Exp):
         for un in tqdm(range(self.unlearning_round)):
             self.logger.info("unlearning id = {}".format(un))
             unlearning_model_path = self.shadow_unlearning_model_path.format(un)
-            k, acc = ftrainer.training(self.max_agg_round, unlearning_model_path, self.local_epoch, self.local_batch_size,
-                              data_path, [un])
-            self.logger.info("shadow:第{}个去学习模型聚合{}轮次, 全训练模型准确率为{}".format(un, k,acc))
+            k, acc = ftrainer.training(self.max_agg_round, unlearning_model_path, self.local_epoch,
+                                       self.local_batch_size,
+                                       data_path, [un])
+            self.logger.info("shadow:第{}个去学习模型聚合{}轮次, 全训练模型准确率为{}".format(un, k, acc))
         self.logger.info('shadow:模型训练完成')
 
     def construct_dataset(self, flag):
@@ -176,8 +178,9 @@ class AttackModelTrainer(Exp):
         ttrainer = FederatedTrainer(self.client_number, self.original_model_name, self.target_initial_model_path)
         data_path = [self.target_train_data_paths, self.target_train_label_paths, self.target_test_data_paths,
                      self.target_test_label_paths, self.target_all_test_path]
-        k, acc = ttrainer.training(self.max_agg_round, self.target_original_model_path, self.local_epoch, self.local_batch_size,
-                          data_path)
+        k, acc = ttrainer.training(self.max_agg_round, self.target_original_model_path, self.local_epoch,
+                                   self.local_batch_size,
+                                   data_path)
         self.logger.info("target:初始模型聚合{}轮次, 全训练模型准确率为{}".format(k, acc))
         self.logger.info('target:初始模型训练完成')
 
@@ -185,9 +188,10 @@ class AttackModelTrainer(Exp):
         for un in tqdm(range(self.unlearning_round)):
             self.logger.info("unlearning id = {}".format(un))
             unlearning_model_path = self.target_unlearning_model_path.format(un)
-            k, acc = ttrainer.training(self.max_agg_round, unlearning_model_path, self.local_epoch, self.local_batch_size,
-                              data_path, [un])
-            self.logger.info("target第{}个去学习模型聚合{}轮次, 全训练模型准确率为{}".format(un, k,acc))
+            k, acc = ttrainer.training(self.max_agg_round, unlearning_model_path, self.local_epoch,
+                                       self.local_batch_size,
+                                       data_path, [un])
+            self.logger.info("target第{}个去学习模型聚合{}轮次, 全训练模型准确率为{}".format(un, k, acc))
         self.logger.info('target:模型训练完成')
 
     def evaluate_attack_model(self, x, y):
