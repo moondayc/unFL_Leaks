@@ -88,11 +88,12 @@ def vector_to_net(vec, net_shape):
 
 
 class FederatedTrainer:
-    def __init__(self, client_number, original_model_name, initial_parameters_path):
+    def __init__(self, client_number, original_model_name, initial_parameters_path, flag):
         self.client_number = client_number
         self.original_model_name = original_model_name
         self.model = determining_original_model(self.original_model_name)
         self.initial_parameters_path = initial_parameters_path
+        self.flag = flag
 
     def training(self, max_agg_number, model_path, local_epoch, local_batch_size, data_path, unlearning_id=None):
         # model_path，训练的模型保存路径
@@ -142,29 +143,49 @@ class FederatedTrainer:
             print("聚合后的模型在所有测试集下的准确率:{:.8f}".format(acc))
             acc_line.append(acc)
             # 确定最新的参数
-            if len(acc_line) >= 2 and acc_line[-2] >= acc_line[-1]:
+            if len(acc_line) >= 2 and abs(acc_line[-2] - acc_line[-1]) <= 1e-10:
                 print("训练结束，拟合成功，保留第{}轮聚合的参数，全局参数保存在{}".format(k, model_path))
+                plt.plot(range(len(acc_line)), acc_line)
+                plt.show()
                 return k, acc_line[-2]
             # 更新参数
             for i in range(len(process_args)):
-                process_args[i]["global parameter path"] = model_path
+                process_args[i]["global_parameter_path"] = model_path
 
             k += 1
         print("训练结束，保留第{}轮聚合的参数，全局参数保存在{}".format(k, model_path))
+        plt.plot(range(len(acc_line)), acc_line)
+        plt.title("{}: unlearning_id = {} accuracy".format(self.flag,unlearning_id) if unlearning_id else "{}: original accuracy".format(self.flag))
+        plt.show()
         return k, acc_line[-1]
-        # plt.plot(range(len(acc_line)), acc_line)
-        # plt.show()
 
 
 if __name__ == "__main__":
     client_number = 10
     net = LeNet()
-    # initial_parameters = {}
-    # if not initial_parameters:
-    #     for key, var in net.state_dict().items():
-    #         initial_parameters[key] = var.clone()
-    # np.save("initial_parameters.npy", initial_parameters)
+    initial_parameters = {}
+    if not initial_parameters:
+        for key, var in net.state_dict().items():
+            initial_parameters[key] = var.clone()
+    np.save("model/shadow_initial_parameters.npy", initial_parameters)
     print("全局变量初始化完成")
-    FTrainer = FederatedTrainer(client_number, net, "model/shadow_initial_parameters.npy")
-    agg_number = 10
-    FTrainer.training(agg_number, "model/original_model.npy")
+
+    agg_number = 20
+    local_batch_size = 20
+    local_epoch = 100
+    shadow_initial_model_path = "model/shadow_initial_parameters.npy"
+    shadow_original_model_path = "model/shadow_original_model.npy"
+    shadow_train_data_paths = "data/slice/shadow_train_data_{}.npy"
+    shadow_train_label_paths = "data/slice/shadow_train_label_{}.npy"
+    shadow_test_data_paths = "data/slice/shadow_test_data_{}.npy"
+    shadow_test_label_paths = "data/slice/shadow_test_label_{}.npy"
+    shadow_negative_data_path = "data/slice/shadow_negative_data.npy"
+    shadow_all_test_path = ["data/slice/shadow_test_data_{}.npy",
+                            "data/slice/shadow_test_label_{}.npy"]
+    original_model_name = "lenet"
+    data_path = [shadow_train_data_paths, shadow_train_label_paths, shadow_test_data_paths,
+                 shadow_test_label_paths, shadow_all_test_path]
+    FTrainer = FederatedTrainer(client_number, original_model_name, shadow_initial_model_path)
+    k, acc = FTrainer.training(agg_number, shadow_original_model_path, local_epoch,
+                               local_batch_size,
+                               data_path)

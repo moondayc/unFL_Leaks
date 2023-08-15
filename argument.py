@@ -13,7 +13,7 @@ def get_args():
     # ------- 本地模型训练参数
     parser.add_argument("-batch", "--local_batch_size", default=20,
                         help="number of batches in machine learning.")
-    parser.add_argument('-epoch', '--local_epoch', default=2,
+    parser.add_argument('-epoch', '--local_epoch', default=10,
                         help="epochs of client-side local training")
 
     # ------- 联邦学习相关参数

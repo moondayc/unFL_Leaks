@@ -83,7 +83,8 @@ class AttackModelTrainer(Exp):
                 initial_parameters[key] = var.clone()
         np.save(self.shadow_initial_model_path, initial_parameters)
         self.logger.info("shadow 全局变量初始化完成")
-        ftrainer = FederatedTrainer(self.client_number, self.original_model_name, self.shadow_initial_model_path)
+        ftrainer = FederatedTrainer(self.client_number, self.original_model_name, self.shadow_initial_model_path,
+                                    "shadow")
         data_path = [self.shadow_train_data_paths, self.shadow_train_label_paths, self.shadow_test_data_paths,
                      self.shadow_test_label_paths, self.shadow_all_test_path]
         k, acc = ftrainer.training(self.max_agg_round, self.shadow_original_model_path, self.local_epoch,
@@ -169,13 +170,15 @@ class AttackModelTrainer(Exp):
 
     def training_target_model(self):
         initial_parameters = {}
+        self.model.initialize_parameters()  # 模型参数随机化
         if not initial_parameters:
-            for key, var in self.model.state_dict().items():
+            for key, var in self.model.state_dict().items():  # 此时的self.model是经过训练的
                 initial_parameters[key] = var.clone()
         np.save(self.target_initial_model_path, initial_parameters)
         self.logger.info("target 全局变量初始化完成")
         self.logger.info("开始训练target模型......")
-        ttrainer = FederatedTrainer(self.client_number, self.original_model_name, self.target_initial_model_path)
+        ttrainer = FederatedTrainer(self.client_number, self.original_model_name, self.target_initial_model_path,
+                                    "target")
         data_path = [self.target_train_data_paths, self.target_train_label_paths, self.target_test_data_paths,
                      self.target_test_label_paths, self.target_all_test_path]
         k, acc = ttrainer.training(self.max_agg_round, self.target_original_model_path, self.local_epoch,
@@ -196,6 +199,6 @@ class AttackModelTrainer(Exp):
 
     def evaluate_attack_model(self, x, y):
         acc = self.attack_model.test_model_acc(x, y)
-        print("{} 攻击模型的准确率 acc={}".format(self.attack_model_name, acc))
+        self.logger.info("{} 攻击模型的准确率 acc={}".format(self.attack_model_name, acc))
         auc = self.attack_model.test_model_auc(x, y)
-        print("{} 模型 auc = {}".format(self.attack_model_name, auc))
+        self.logger.info("{} 模型 auc = {}".format(self.attack_model_name, auc))

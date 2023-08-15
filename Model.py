@@ -22,6 +22,19 @@ class LeNet(nn.Module):
         self.fc1 = nn.Linear(16 * 4 * 4, 120)
         self.fc2 = nn.Linear(120, 84)
         self.fc3 = nn.Linear(84, 10)
+        self.initialize_parameters()
+
+    def initialize_parameters(self):
+        nn.init.xavier_uniform_(self.conv1.weight)
+        nn.init.zeros_(self.conv1.bias)
+        nn.init.xavier_uniform_(self.conv2.weight)
+        nn.init.zeros_(self.conv2.bias)
+        nn.init.xavier_uniform_(self.fc1.weight)
+        nn.init.zeros_(self.fc1.bias)
+        nn.init.xavier_uniform_(self.fc2.weight)
+        nn.init.zeros_(self.fc2.bias)
+        nn.init.xavier_uniform_(self.fc3.weight)
+        nn.init.zeros_(self.fc3.bias)
 
     def forward(self, x):
         x = self.pool1(torch.relu(self.conv1(x)))
@@ -54,6 +67,7 @@ class CNNCifar(nn.Module):
         x = F.relu(self.fc2(x))
         x = self.fc3(x)
         return x
+
 
 # ----------------------------------- 攻击模型
 class DT:
@@ -165,4 +179,3 @@ class LR:
         pred_y = self.model.predict_proba(self.scaler.transform(test_x))
         # return roc_auc_score(test_y, pred_y[:, 1])  # binary class classification AUC
         return roc_auc_score(test_y, pred_y[:, 1], multi_class="ovr", average=None)  # multi-class AUC
-
