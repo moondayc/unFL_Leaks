@@ -25,9 +25,9 @@ def get_args():
                         help="the maximum aggregation count")
     parser.add_argument('-d', "--decimal_places", default=8)
 
-    # ----- shadow 训练的相关参数
-    # parser.add_argument('--shadow_set_num', type=int, default=10,
-    #                     help="Number of shadow original model")
+    # ----- 训练的相关参数
+    parser.add_argument('--round_number', type=int, default=10,
+                        help="Number of round of original model training")
     # parser.add_argument('--shadow_set_size', type=int, default=2000,
     #                     help="Number of shadow model training samples")
 

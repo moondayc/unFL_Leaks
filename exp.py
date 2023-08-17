@@ -26,6 +26,7 @@ class Exp:
         self.decimal_place = args["decimal_places"]
         self.all_client_number = args["all_client_number"]
         self.attack_model_name = args["attack_model_name"]
+        self.round_number = args["round_number"]
         self.attack_model = None
         assert self.unlearning_round <= self.client_number, "去学习个数应该小于客户端个数"
         self.current_time = datetime.now().strftime("%d_%H_%M")
@@ -88,12 +89,11 @@ class AttackModelTrainer(Exp):
 
         self.attack_model_path = "model/{}/{{}}_attacker.npy".format(self.current_time)
 
-        self.original_number = 2
-        self.get_shadow_models(self.original_number)  # 训练多轮shadow模型
+        self.get_shadow_models(self.round_number)  # 训练多轮shadow模型
         x, y = self.construct_dataset(0)  # 构造训练攻击模型的数据集
         self.training_attack_model(x, y)  # 训练攻击模型
 
-        self.get_target_models(self.original_number)  # 训练target模型
+        self.get_target_models(self.round_number)  # 训练target模型
         x, y = self.construct_dataset(1)  # 构造测试攻击模型的数据集
         self.evaluate_attack_model(x, y)
 
