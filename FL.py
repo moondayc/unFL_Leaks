@@ -1,3 +1,5 @@
+import os
+
 import numpy as np
 import torch
 from functools import reduce
@@ -47,28 +49,40 @@ def ClientTraining(args):
     net.load_state_dict(global_parameters)
     opti = torch.optim.SGD(net.parameters(), lr=0.01)  # lr学习率
     # 调用客户端训练
-    training_pro = ClientTrainer(client, trainloader, testloader, dev, net, opti, local_epoch, local_batch_size, )
+    training_pro = ClientTrainer(client, trainloader, testloader, dev, net, opti, local_epoch, local_batch_size)
     new_parameter = training_pro.train(global_parameters)  # 训练出新参数
     acc = training_pro.evaluate(new_parameter)
-    print("client{} accuracy = {}".format(client, acc))
+    # print("client{} accuracy = {}".format(client, acc))
     return new_parameter, acc
 
 
-def all_evaluate(new_parameter, model, test_path, uid):
+def all_evaluate(new_parameter, model, test_path, participants, uid):
     if not uid:
         uid = []
     model.load_state_dict(new_parameter)
-    testdata0 = [np.load(test_path[0].format(cid)) for cid in range(10) if cid not in uid]
+    testdata0 = [np.load(test_path[0].format(cid)) for cid in participants if cid not in uid]
     testdata = torch.Tensor(np.concatenate(testdata0))
     testdata = testdata.unsqueeze(1)
-    testlabels0 = [np.load(test_path[1].format(cid)) for cid in range(10) if cid not in uid]
+    testlabels0 = [np.load(test_path[1].format(cid)) for cid in participants if cid not in uid]
     testlabels = torch.Tensor(np.concatenate(testlabels0))
     testset0 = torch.utils.data.TensorDataset(torch.Tensor(testdata), torch.Tensor(testlabels))
-    testloader = torch.utils.data.DataLoader(testset0, batch_size=20, shuffle=True)
-    dev = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
-    all_test = ClientTrainer(None, None, testloader, dev, model, None, 0, 20, )
-    acc = all_test.evaluate(new_parameter)
+    testloader = torch.utils.data.DataLoader(testset0, batch_size=20, shuffle=False)
+    test_correct = 0
+    test_total = 0
+    dev = torch.device("cpu")
+    with torch.no_grad():
+        for data, label in testloader:
+            data, label = data.to(dev), label.to(dev)
+            preds = model(data)
+            _, predicted = torch.max(preds.data, 1)
+            test_total += label.size(0)
+            test_correct += (predicted == label).sum().item()
+    torch.cuda.empty_cache()
+    acc = 100.0 * test_correct / test_total
     return acc
+
+# cid, trainloader, testloader, dev, net, opti, local_epoch=10, local_batchsize=128,
+#                  loss_fun=nn.CrossEntropyLoss()
 
 
 def net_to_vector(net_state_dict):
@@ -88,12 +102,13 @@ def vector_to_net(vec, net_shape):
 
 
 class FederatedTrainer:
-    def __init__(self, client_number, original_model_name, initial_parameters_path, flag):
-        self.client_number = client_number
+    def __init__(self, participants, original_model_name, initial_parameters_path, decimal_place, flag):
+        self.participants = participants
         self.original_model_name = original_model_name
         self.model = determining_original_model(self.original_model_name)
         self.initial_parameters_path = initial_parameters_path
         self.flag = flag
+        self.decimal_place = decimal_place
 
     def training(self, max_agg_number, model_path, local_epoch, local_batch_size, data_path, unlearning_id=None):
         # model_path，训练的模型保存路径
@@ -104,9 +119,9 @@ class FederatedTrainer:
             {"global_parameter_path": self.initial_parameters_path, "client": cid, "local_epoch": local_epoch,
              "local_batch_size": local_batch_size, "original_model_name": self.original_model_name,
              "train_data": train_data.format(cid), "train_label": train_label.format(cid),
-             "test_data": test_data.format(cid), "test_label": test_label.format(cid)
+             "test_data": test_data.format(cid), "test_label": test_label.format(cid),
              }
-            for cid in range(self.client_number) if cid not in unlearning_id]
+            for cid in self.participants if cid not in unlearning_id]
         # 定义聚合协议
         Pro = SecAgg(8)
 
@@ -114,7 +129,7 @@ class FederatedTrainer:
         # agg_number = 10  # 聚合次数
         k = 0
         acc_line = []
-        participant_number = self.client_number - len(unlearning_id) if unlearning_id else self.client_number
+        participant_number = len(self.participants)-len(unlearning_id)
         while k < max_agg_number:
             with Pool(4) as p:
                 result = p.map(ClientTraining, process_args)
@@ -135,17 +150,19 @@ class FederatedTrainer:
             # print("聚合后全局参数的第一个数：{}".format(list(global_parameters.values())[0][0][0][0]))
 
             # 计算聚合后的模型在所有测试集下的准确率
-
-            acc = all_evaluate(global_parameters, self.model, all_test, unlearning_id)
+            acc = all_evaluate(global_parameters, self.model, all_test, self.participants, unlearning_id)
             if unlearning_id:
                 print("unlearning id = {}".format(unlearning_id))
             print("完成第{}次聚合训练".format(k + 1))
             print("聚合后的模型在所有测试集下的准确率:{:.8f}".format(acc))
             acc_line.append(acc)
             # 确定最新的参数
-            if len(acc_line) >= 2 and abs(acc_line[-2] - acc_line[-1]) <= 1e-10:
-                print("训练结束，拟合成功，保留第{}轮聚合的参数，全局参数保存在{}".format(k, model_path))
-                plt.plot(range(len(acc_line)), acc_line)
+            if len(acc_line) >= 2 and abs(acc_line[-2] - acc_line[-1]) <= 10**(-self.decimal_place):
+                print("训练结束，保留第{}轮聚合的参数，全局参数保存在{}".format(k, model_path))
+                plt.plot([j for j in range(len(acc_line))], acc_line)
+                plt.title("{}: unlearning_id = {} accuracy".format(self.flag,
+                                                                   unlearning_id) if unlearning_id else "{}: original accuracy".format(
+                    self.flag))
                 plt.show()
                 return k, acc_line[-2]
             # 更新参数
@@ -154,38 +171,31 @@ class FederatedTrainer:
 
             k += 1
         print("训练结束，保留第{}轮聚合的参数，全局参数保存在{}".format(k, model_path))
-        plt.plot(range(len(acc_line)), acc_line)
-        plt.title("{}: unlearning_id = {} accuracy".format(self.flag,unlearning_id) if unlearning_id else "{}: original accuracy".format(self.flag))
+        plt.plot([j for j in range(len(acc_line))], acc_line)
+        plt.title("{}: unlearning_id = {} accuracy".format(self.flag,
+                                                           unlearning_id) if unlearning_id else "{}: original accuracy".format(
+            self.flag))
         plt.show()
         return k, acc_line[-1]
 
 
 if __name__ == "__main__":
-    client_number = 10
-    net = LeNet()
-    initial_parameters = {}
-    if not initial_parameters:
-        for key, var in net.state_dict().items():
-            initial_parameters[key] = var.clone()
-    np.save("model/shadow_initial_parameters.npy", initial_parameters)
-    print("全局变量初始化完成")
-
-    agg_number = 20
-    local_batch_size = 20
-    local_epoch = 100
-    shadow_initial_model_path = "model/shadow_initial_parameters.npy"
-    shadow_original_model_path = "model/shadow_original_model.npy"
     shadow_train_data_paths = "data/slice/shadow_train_data_{}.npy"
     shadow_train_label_paths = "data/slice/shadow_train_label_{}.npy"
     shadow_test_data_paths = "data/slice/shadow_test_data_{}.npy"
     shadow_test_label_paths = "data/slice/shadow_test_label_{}.npy"
-    shadow_negative_data_path = "data/slice/shadow_negative_data.npy"
     shadow_all_test_path = ["data/slice/shadow_test_data_{}.npy",
                             "data/slice/shadow_test_label_{}.npy"]
-    original_model_name = "lenet"
+    client_number = range(0, 10, 1)
+    original_model_name = 'lenet'
+    shadow_initial_model_path = "model/18_00_42/shadow_models/0/shadow_initial_parameters.npy"
+    agg_number = 2
+    shadow_original_model_path = "model/18_00_42/shadow_models/0/shadow_original_model.npy"
+    local_epoch = 2
+    local_batch_size = 20
     data_path = [shadow_train_data_paths, shadow_train_label_paths, shadow_test_data_paths,
                  shadow_test_label_paths, shadow_all_test_path]
-    FTrainer = FederatedTrainer(client_number, original_model_name, shadow_initial_model_path)
+    FTrainer = FederatedTrainer(client_number, original_model_name, shadow_initial_model_path, 8, "shadow")
     k, acc = FTrainer.training(agg_number, shadow_original_model_path, local_epoch,
                                local_batch_size,
                                data_path)

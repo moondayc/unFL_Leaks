@@ -42,8 +42,9 @@ class ClientTrainer:
         self.net.load_state_dict(global_parameters, strict=True)
         self.net.train()
         for epoch in range(self.local_epoch):
-            for data, label in tqdm(self.trainloader,
-                                    desc=f'Client{self.cid} training epoch {epoch + 1}/{self.local_epoch}'):
+            for data, label in self.trainloader:
+            # for data, label in tqdm(self.trainloader,
+            #                         desc=f'Client{self.cid} training epoch {epoch + 1}/{self.local_epoch}'):
                 data, label = data.to(self.dev), label.to(self.dev)
                 self.opti.zero_grad()
                 preds = self.net(data)
