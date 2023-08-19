@@ -1,11 +1,12 @@
 import time
 
 from argument import get_args
-from exp import AttackModelTrainer
+from exp import ModelTrainer, AttackModelTrainer
 
 
 def main(args):
-    AttackModelTrainer(args)
+    ModelTrainer(args)
+    #AttackModelTrainer(args)
 
 
 if __name__ == "__main__":

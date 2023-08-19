@@ -4,6 +4,9 @@ import numpy as np
 import torch
 from functools import reduce
 import operator
+
+from tqdm import tqdm
+
 from Model import LeNet
 from Traning import ClientTrainer
 from multiprocessing import Pool
@@ -47,7 +50,7 @@ def ClientTraining(args):
     # 模型
     net = determining_original_model(original_model_name)
     net.load_state_dict(global_parameters)
-    opti = torch.optim.SGD(net.parameters(), lr=0.01)  # lr学习率
+    opti = torch.optim.SGD(net.parameters(), lr=0.01, weight_decay=0.01)  # lr学习率
     # 调用客户端训练
     training_pro = ClientTrainer(client, trainloader, testloader, dev, net, opti, local_epoch, local_batch_size)
     new_parameter = training_pro.train(global_parameters)  # 训练出新参数
@@ -130,7 +133,8 @@ class FederatedTrainer:
         k = 0
         acc_line = []
         participant_number = len(self.participants)-len(unlearning_id)
-        while k < max_agg_number:
+        #while k < max_agg_number:
+        for k in tqdm(range(max_agg_number), desc="Federated Learning"):
             with Pool(4) as p:
                 result = p.map(ClientTraining, process_args)
             aver_acc = sum([result[i][1] for i in range(participant_number)]) / participant_number
@@ -159,23 +163,23 @@ class FederatedTrainer:
             # 确定最新的参数
             if len(acc_line) >= 2 and abs(acc_line[-2] - acc_line[-1]) <= 10**(-self.decimal_place):
                 print("训练结束，保留第{}轮聚合的参数，全局参数保存在{}".format(k, model_path))
-                plt.plot([j for j in range(len(acc_line))], acc_line)
-                plt.title("{}: unlearning_id = {} accuracy".format(self.flag,
-                                                                   unlearning_id) if unlearning_id else "{}: original accuracy".format(
-                    self.flag))
-                plt.show()
+                # plt.plot([j for j in range(len(acc_line))], acc_line)
+                # plt.title("{}: unlearning_id = {} accuracy".format(self.flag,
+                #                                                    unlearning_id) if unlearning_id else "{}: original accuracy".format(
+                #     self.flag))
+                # plt.show()
                 return k, acc_line[-2]
             # 更新参数
             for i in range(len(process_args)):
                 process_args[i]["global_parameter_path"] = model_path
 
-            k += 1
+            #k += 1
         print("训练结束，保留第{}轮聚合的参数，全局参数保存在{}".format(k, model_path))
-        plt.plot([j for j in range(len(acc_line))], acc_line)
-        plt.title("{}: unlearning_id = {} accuracy".format(self.flag,
-                                                           unlearning_id) if unlearning_id else "{}: original accuracy".format(
-            self.flag))
-        plt.show()
+        # plt.plot([j for j in range(len(acc_line))], acc_line)
+        # plt.title("{}: unlearning_id = {} accuracy".format(self.flag,
+        #                                                    unlearning_id) if unlearning_id else "{}: original accuracy".format(
+        #     self.flag))
+        # plt.show()
         return k, acc_line[-1]
 
 
@@ -186,11 +190,11 @@ if __name__ == "__main__":
     shadow_test_label_paths = "data/slice/shadow_test_label_{}.npy"
     shadow_all_test_path = ["data/slice/shadow_test_data_{}.npy",
                             "data/slice/shadow_test_label_{}.npy"]
-    client_number = range(0, 10, 1)
+    client_number = [4, 17, 6, 3, 0, 2, 5, 9, 14, 16]
     original_model_name = 'lenet'
-    shadow_initial_model_path = "model/18_00_42/shadow_models/0/shadow_initial_parameters.npy"
-    agg_number = 2
-    shadow_original_model_path = "model/18_00_42/shadow_models/0/shadow_original_model.npy"
+    shadow_initial_model_path = "model/18_01_55/shadow_models/2/shadow_initial_parameters.npy"
+    agg_number = 100
+    shadow_original_model_path = "model/18_01_55/shadow_models/2/shadow_original_model.npy"
     local_epoch = 2
     local_batch_size = 20
     data_path = [shadow_train_data_paths, shadow_train_label_paths, shadow_test_data_paths,

@@ -21,18 +21,18 @@ def get_args():
                         help="number of clients participating in one round of aggregation")
     parser.add_argument("-acn", "--all_client_number", default=20,
                         help="number of all clients participating in aggregation")
-    parser.add_argument('-max', "--max_aggregation_round", default=100,
+    parser.add_argument('-max', "--max_aggregation_round", default=1,
                         help="the maximum aggregation count")
     parser.add_argument('-d', "--decimal_places", default=8)
 
     # ----- 训练的相关参数
-    parser.add_argument('--round_number', type=int, default=10,
+    parser.add_argument('--round_number', type=int, default=1,
                         help="Number of round of original model training")
     # parser.add_argument('--shadow_set_size', type=int, default=2000,
     #                     help="Number of shadow model training samples")
 
     # ------- unlearning 的相关参数
-    parser.add_argument("-un", "--unlearning round", default=10,
+    parser.add_argument("-un", "--unlearning round", default=2,
                         help="the number of rounds of unlearning training")  # 默认每轮unlearning去掉一个
     args = vars(parser.parse_args())
     return args
