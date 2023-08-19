@@ -16,7 +16,7 @@ import matplotlib.pyplot as plt
 from utils import determining_original_model
 
 
-def ClientTraining(args):
+def ClientTraining0(args):
     # 读取参数
     client = args["client"]
     local_epoch = args["local_epoch"]
@@ -49,7 +49,7 @@ def ClientTraining(args):
     # dev = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
     # 模型
     net = determining_original_model(original_model_name)
-    net.load_state_dict(global_parameters)
+    # net.load_state_dict(global_parameters) 在调用train函数
     opti = torch.optim.SGD(net.parameters(), lr=0.01, weight_decay=0.01)  # lr学习率
     # 调用客户端训练
     training_pro = ClientTrainer(client, trainloader, testloader, dev, net, opti, local_epoch, local_batch_size)
@@ -58,8 +58,31 @@ def ClientTraining(args):
     # print("client{} accuracy = {}".format(client, acc))
     return new_parameter, acc
 
+def ClientTraining1(args):
+    # 读取参数
+    client = args["client"]
+    # 读取全局参数和初始模型
+    global_parameters_path = args["global_parameter_path"]
+    original_model_name = args["original_model_name"]
+    # 训练数据集和测试集
+    train_data_name = args["train_data"]
+    train_label_name = args["train_label"]
+    test_data_name = args["test_data"]
+    test_label_name = args["test_label"]
+    global_parameters = np.load(global_parameters_path, allow_pickle=True).item()
+    model = determining_original_model(original_model_name)
+    model.set_params(global_parameters)
+    x = np.load(train_data_name.format(client))
+    y = np.load(train_label_name.format(client))
+    model.train_model(x, y)
+    new_parameter = model.get_params()
+    test_x = np.load(test_data_name.format(client))
+    test_y = np.load(test_label_name.format(client))
+    acc = model.test_model_acc(test_x, test_y)
+    return new_parameter, acc
 
-def all_evaluate(new_parameter, model, test_path, participants, uid):
+
+def all_evaluate0(new_parameter, model, test_path, participants, uid):
     if not uid:
         uid = []
     model.load_state_dict(new_parameter)
@@ -84,6 +107,16 @@ def all_evaluate(new_parameter, model, test_path, participants, uid):
     acc = 100.0 * test_correct / test_total
     return acc
 
+def all_evaluate1(new_parameter, model, test_path, participants, uid):
+    if not uid:
+        uid = []
+    model.set_params(new_parameter)
+    testdata = [np.load(test_path[0].format(cid)) for cid in participants if cid not in uid]
+    testdata = torch.Tensor(np.concatenate(testdata))
+    testlabels = [np.load(test_path[1].format(cid)) for cid in participants if cid not in uid]
+    testlabels = torch.Tensor(np.concatenate(testlabels))
+    acc = model.test_model_acc(testdata, testlabels)
+    return acc
 # cid, trainloader, testloader, dev, net, opti, local_epoch=10, local_batchsize=128,
 #                  loss_fun=nn.CrossEntropyLoss()
 
@@ -136,9 +169,16 @@ class FederatedTrainer:
         #while k < max_agg_number:
         for k in tqdm(range(max_agg_number), desc="Federated Learning"):
             with Pool(4) as p:
-                result = p.map(ClientTraining, process_args)
+                result = p.map(ClientTraining0, process_args)
+            # TODO:决策树部分修改
+            # if self.original_model_name in ["lenet"]:
+            #     with Pool(4) as p:
+            #         result = p.map(ClientTraining0, process_args)
+            # elif self.original_model_name in ["DT"]:
+            #     with Pool(4) as p:
+            #         result = p.map(ClientTraining1, process_args)
             aver_acc = sum([result[i][1] for i in range(participant_number)]) / participant_number
-            print("第{}次聚合准确率平均值：{}".format(k + 1, aver_acc))
+            #print("第{}次聚合准确率平均值：{}".format(k + 1, aver_acc))
             # 变形聚合
             shape = {}
             for i in result:
@@ -154,15 +194,20 @@ class FederatedTrainer:
             # print("聚合后全局参数的第一个数：{}".format(list(global_parameters.values())[0][0][0][0]))
 
             # 计算聚合后的模型在所有测试集下的准确率
-            acc = all_evaluate(global_parameters, self.model, all_test, self.participants, unlearning_id)
-            if unlearning_id:
-                print("unlearning id = {}".format(unlearning_id))
-            print("完成第{}次聚合训练".format(k + 1))
-            print("聚合后的模型在所有测试集下的准确率:{:.8f}".format(acc))
+            if self.original_model_name in ['lenet']:
+                acc = all_evaluate0(global_parameters, self.model, all_test, self.participants, unlearning_id)
+            elif self.original_model_name in ['DT']:
+                acc = all_evaluate1(global_parameters, self.model, all_test, self.participants, unlearning_id)
+            else:
+                raise "初始模型类型错误"
+            # if unlearning_id:
+            #     print("unlearning id = {}".format(unlearning_id))
+            #print("完成第{}次聚合训练".format(k + 1))
+            #print("聚合后的模型在所有测试集下的准确率:{:.8f}".format(acc))
             acc_line.append(acc)
             # 确定最新的参数
             if len(acc_line) >= 2 and abs(acc_line[-2] - acc_line[-1]) <= 10**(-self.decimal_place):
-                print("训练结束，保留第{}轮聚合的参数，全局参数保存在{}".format(k, model_path))
+                #print("训练结束，保留第{}轮聚合的参数，全局参数保存在{}".format(k, model_path))
                 # plt.plot([j for j in range(len(acc_line))], acc_line)
                 # plt.title("{}: unlearning_id = {} accuracy".format(self.flag,
                 #                                                    unlearning_id) if unlearning_id else "{}: original accuracy".format(
@@ -174,7 +219,7 @@ class FederatedTrainer:
                 process_args[i]["global_parameter_path"] = model_path
 
             #k += 1
-        print("训练结束，保留第{}轮聚合的参数，全局参数保存在{}".format(k, model_path))
+        #print("训练结束，保留第{}轮聚合的参数，全局参数保存在{}".format(k, model_path))
         # plt.plot([j for j in range(len(acc_line))], acc_line)
         # plt.title("{}: unlearning_id = {} accuracy".format(self.flag,
         #                                                    unlearning_id) if unlearning_id else "{}: original accuracy".format(

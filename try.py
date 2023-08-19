@@ -22,39 +22,21 @@ def calculate_DegCount_and_DegRate(test_x, test_y, test_model, base_model):
 
     # print("tree1_pred")
     # print(tree1_pred)
-    # test_x_1 = test_x[test_y == 1]
-    # print(test_x_1)
-
-
-    pass
 
 
 if __name__ == "__main__":
-    tree1 = DT()
-    x = [[1, 1, 1],
-         [1, 1, 1],
-         [1, 1, 0],
-         [0, 0, 0],
-         [0, 0, 0],
-         [0, 0, 0]]
-    y = [1, 1, 1, 0, 0, 0]
-    tree1.train_model(x, y, "1.npy")
-    pred = tree1.predict_proba([[1, 1, 1],
-                                [0, 0, 0]])
-    tree2 = DT()
-    x = [[1, 1, 1],
-         [1, 1, 1],
-         [1, 1, 0],
-         [0, 0, 0],
-         [0, 0, 0],
-         [0, 0, 0]]
-    y = [0, 0, 0, 1, 1, 1]
-    tree2.train_model(x, y, "1.npy")
-    pred = tree2.predict_proba([[1, 1, 1],
-                                [0, 0, 0]])
-    kx = np.array([[1, 1, 1],
-          [0, 0, 0],
-          [0, 0, 0],
-          [1, 1, 1]])
-    ky = np.array([1, 0, 0, 1])
-    calculate_DegCount_and_DegRate(kx, ky, tree1, tree2)
+    model = DT()
+    x = [
+        [1, 1, 1],
+        [1, 1, 1],
+        [0, 0, 0],
+        [0, 0, 0]
+    ]
+    y = ["花", "花", "草", "草"]
+    model.train_model(x, y, "1.npy")
+    k = [
+        [1, 1, 0],
+        [0, 0, 1]
+    ]
+    p = model.predict_proba(k)
+    print(p)

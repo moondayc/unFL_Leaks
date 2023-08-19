@@ -3,6 +3,7 @@ import os.path
 import random
 import pickle
 import re
+from multiprocessing import Pool
 
 import numpy as np
 import pandas as pd
@@ -17,11 +18,9 @@ from datetime import datetime
 
 class Exp:
     def __init__(self, args):
-        logging.basicConfig(level=logging.DEBUG)
-        self.logger = logging.getLogger("trainer")
         self.dataset_name = args["dataset_name"]
         self.original_model_name = args["original_model_name"]
-        self.unlearning_round = args["unlearning round"]
+        # self.unlearning_round = args["unlearning round"]
         self.max_agg_round = args["max_aggregation_round"]
         self.local_batch_size = args["local_batch_size"]
         self.local_epoch = args["local_epoch"]
@@ -30,36 +29,44 @@ class Exp:
         self.all_client_number = args["all_client_number"]
         self.attack_model_name = args["attack_model_name"]
         self.round_number = args["round_number"]
-        assert self.unlearning_round <= self.client_number, "去学习个数应该小于客户端个数"
+        assert self.client_number <= self.all_client_number, "每一轮参与客户端训练的参数必须小于客户端总数"
+
         self.current_time = datetime.now().strftime("%d_%H_%M")
         # self.current_time = "18_01_06"
-        file_handler = logging.FileHandler(
-            'log/{}_{}_{}_{}.log'.format(self.current_time, self.dataset_name, self.original_model_name,
-                                         self.attack_model_name))
-        file_handler.setLevel(logging.DEBUG)
-        self.logger.addHandler(file_handler)
+
         self.attack_model = None
         self.original_attack_model = None
         self.initial_path = "model/{}_{}/".format(self.dataset_name, self.original_model_name)
-        if not os.path.exists(self.initial_path):
-            os.makedirs(self.initial_path)
-            self.logger.info("生成模型目录: {} ".format(self.initial_path))
 
-        self.logger.info(args)
-        self.logger.info("Experiment Start!".format())
-        self.load_data()
+        # TODO：便于控制中间模型模型训练
+        self.begin, self.end = 0, 1
+
 
     def load_data(self):
         self.logger.info('loading data')
-
         self.logger.info('loaded data')
 
 
 class ModelTrainer(Exp):
     def __init__(self, args):
         super(ModelTrainer, self).__init__(args)
-        self.model = determining_original_model(self.original_model_name)
+        logging.basicConfig(level=logging.DEBUG)
+        self.logger = logging.getLogger("trainer")
+        if not os.path.exists(self.initial_path):
+            os.makedirs(self.initial_path)
+            self.logger.info("生成模型目录: {} ".format(self.initial_path))
+        path = 'log/trainer_{}_{}_{}/'.format(self.dataset_name, self.original_model_name, self.attack_model_name)
+        if not os.path.exists(path):
+            os.makedirs(path)
+        file_handler = logging.FileHandler(path + '{}.log'.format(self.current_time))
+        file_handler.setLevel(logging.DEBUG)
+        self.logger.addHandler(file_handler)
+        self.logger.info(args)
+        self.logger.info("Experiment Start!".format())
+        self.load_data()
+        self.logger.info("begin = {}, end = {}".format(self.begin, self.end))
 
+        # self.model = determining_original_model(self.original_model_name)
         self.shadow_train_data_paths = "data/slice/shadow_train_data_{}.npy"
         self.shadow_train_label_paths = "data/slice/shadow_train_label_{}.npy"
         self.shadow_test_data_paths = "data/slice/shadow_test_data_{}.npy"
@@ -91,8 +98,8 @@ class ModelTrainer(Exp):
         self.target_negative_id = {}
         self.target_participants_id = {}
         self.target_unlearned_ids = {}
-
         # shadow数据路径
+        self.model = determining_original_model(self.original_model_name)
         self.get_shadow_models(self.round_number)  # 训练多轮shadow模型
         self.get_target_models(self.round_number)  # 训练target模型
 
@@ -101,7 +108,8 @@ class ModelTrainer(Exp):
         if not self.initial_shadow_path:
             os.makedirs(self.initial_shadow_path)
             self.logger.info("成功生成目录: {}".format(self.initial_shadow_path))
-        for i in tqdm(range(n), desc="shadow training round"):
+        # for i in tqdm(range(n), desc="shadow training round"): TODO:便于控制中间模型训练
+        for i in tqdm(range(self.begin, self.end), desc="shadow training round"):
             self.shadow_path = self.initial_shadow_path + str(i) + "/"
             if not os.path.exists(self.shadow_path):
                 os.makedirs(self.shadow_path)
@@ -124,7 +132,8 @@ class ModelTrainer(Exp):
         if not self.initial_target_path:
             os.makedirs(self.initial_target_path)
             self.logger.info("成功生成目录: {}".format(self.initial_target_path))
-        for i in tqdm(range(n), desc="target training round"):
+        # for i in tqdm(range(n), desc="target training round"):TODO:便于控制中间模型训练
+        for i in tqdm(range(self.begin, self.end), desc="target training round"):
             self.target_path = self.initial_target_path + str(i) + "/"
             if not os.path.exists(self.target_path):
                 os.makedirs(self.target_path)
@@ -205,32 +214,54 @@ class ModelTrainer(Exp):
         self.logger.info('target:模型训练完成')
 
 
+
 class AttackModelTrainer(Exp):
     def __init__(self, args):
         super(AttackModelTrainer, self).__init__(args)
+
+        logging.basicConfig(level=logging.DEBUG)
+        self.logger = logging.getLogger("Attacker")
+        if not os.path.exists(self.initial_path):
+            os.makedirs(self.initial_path)
+            self.logger.info("生成模型目录: {} ".format(self.initial_path))
+        path = 'log/attacker_{}_{}_{}/'.format(self.dataset_name, self.original_model_name, self.attack_model_name)
+        if not os.path.exists(path):
+            os.makedirs(path)
+        file_handler = logging.FileHandler(path + '{}.log'.format(self.current_time))
+        file_handler.setLevel(logging.DEBUG)
+        self.logger.addHandler(file_handler)
+        self.logger.info(args)
+        self.logger.info("Experiment Start!".format())
+        self.load_data()
+        tmp_n = self.end - self.begin
+        self.logger.info("初始模型个数: {}".format(tmp_n))  # TODO：tmp_n 要用于记录参与的训练初始模型数
+        self.logger.info("begin = {}, end = {}".format(self.begin, self.end))
+
         self.shadow_train_data_paths = "data/slice/shadow_train_data_{}.npy"
         self.target_train_data_paths = "data/slice/target_train_data_{}.npy"
 
         self.original_model_path = "shadow_original_model.npy"
-        self.original_attack_model_path = self.initial_path+"original_{}_attacker.npy"
-        self.attack_model_path = self.initial_path + "{}_attacker.npy"
+        attacker_path = self.initial_path + "{}/".format(self.attack_model_name)
+        self.original_attack_model_path = attacker_path + "original_{{}}_{}_attacker.npy".format(tmp_n)
+        self.attack_model_path = attacker_path + "{{}}_{}_attacker.npy".format(tmp_n)
+
 
         # 不考虑数据删除场景
-        base_x, base_y = self.construct_base_dataset(0, self.round_number, "shadow")  # 构造训练攻击模型的数据集
+        base_x, base_y = self.construct_base_dataset(self.begin, self.end, "shadow")  # 构造训练攻击模型的数据集
         self.original_attack_model = self.training_attack_model(base_x, base_y, 0)  # 训练攻击模型
 
-        test_base_x, test_base_y = self.construct_base_dataset(0, self.round_number, "target")  # 构造攻击模型的测试集
+        test_base_x, test_base_y = self.construct_base_dataset(self.begin, self.end, "target")  # 构造攻击模型的测试集
         self.evaluate_attack_model(test_base_x, test_base_y, 0)
         # 考虑数据删除场景
-        x, y = self.construct_diff_dataset(0, self.round_number, "shadow")  # 构造训练攻击模型的数据集
+        x, y = self.construct_diff_dataset(self.begin, self.end, "shadow")  # 构造训练攻击模型的数据集
         self.attack_model = self.training_attack_model(x, y, 1)  # 训练攻击模型
-        test__x, test_y = self.construct_diff_dataset(0, self.round_number, "target")
+        test__x, test_y = self.construct_diff_dataset(self.begin, self.end, "target")
         self.evaluate_attack_model(test__x, test_y, 1)
 
         # 计算degcount, degrate
         degcount, degrate = self.calculate_DegCount_and_DegRate(test_base_x, test_base_y, self.original_attack_model,
                                                                 test__x, test_y, self.attack_model)
-        print("degcount = {} , degrate = {}".format(degcount, degrate))
+        self.logger.info("degcount = {} , degrate = {}".format(degcount, degrate))
 
     def construct_base_dataset(self, begin, end, flag):
         # flag :["shadow", "target"]
@@ -240,11 +271,8 @@ class AttackModelTrainer(Exp):
             # 构造正向特征
             initial_path = self.initial_path + flag + "_models/" + str(j) + "/"
             model_path, _, unid, negative_id = self.get_path(initial_path)
-            print("444444444")
-            print(model_path, _, unid, negative_id )
             positive_data_path = self.shadow_train_data_paths.format(
                 unid) if flag == "shadow" else self.target_train_data_paths.format(unid)
-            print("11111111111", positive_data_path)
             feature = self.get_model_output(model_path, positive_data_path).tolist()
             features.append(feature)
             label = [1] * len(feature)
@@ -258,6 +286,7 @@ class AttackModelTrainer(Exp):
             labels.append(label)
         features = sum(features, [])
         labels = sum(labels, [])
+        print("{}: 正向数据量: {}; 反向数据量: {}".format(flag, sum(labels), len(labels) - sum(labels)))
         return features, labels
 
     def construct_diff_dataset(self, begin, end, flag):
@@ -277,12 +306,13 @@ class AttackModelTrainer(Exp):
             # 构造反向数据集
             negitive_data_path = self.shadow_train_data_paths.format(
                 negative_id) if flag == "shadow" else self.target_train_data_paths.format(negative_id)
-            feature = self.get_differential_data(model_path, un_model_path, positive_data_path).tolist()
+            feature = self.get_differential_data(model_path, un_model_path, negitive_data_path).tolist()
             features.append(feature)
             label = [0] * len(feature)
             labels.append(label)
         features = sum(features, [])
         labels = sum(labels, [])
+        print("{}: 正向数据量: {}; 反向数据量: {}".format(flag, sum(labels), len(labels) - sum(labels)))
         return features, labels
 
     def get_path(self, initial_path):
@@ -292,7 +322,7 @@ class AttackModelTrainer(Exp):
         unid = unlearned_model_path[len("shadow_unlearned_model_unid_"):-4]
         with open(initial_path + '/' + "negative_id.txt") as f:
             negative_id = int(f.readline())
-        return initial_path+original_model_path, initial_path+unlearned_model_path, unid, negative_id
+        return initial_path + original_model_path, initial_path + unlearned_model_path, unid, negative_id
 
     def get_differential_data(self, model_path, unlearned_path, data_path):
         original_output = self.get_model_output(model_path, data_path)
@@ -329,6 +359,7 @@ class AttackModelTrainer(Exp):
 
     def calculate_DegCount_and_DegRate(self, test_base_x, test_base_y, base_model, test_x, test_y, model):
         assert test_base_y == test_y, "两个攻击模型的测试数据必须相同"
+        print(test_base_y == test_y)
         test_base_x, test_base_y = np.array(test_base_x), np.array(test_base_y)
         test_x, test_y = np.array(test_x), np.array(test_y)
 
@@ -339,14 +370,21 @@ class AttackModelTrainer(Exp):
         model_pred = pd.DataFrame(model_pred)
 
         diff = model_pred - base_model_pred
+        tmp = 0
+        # for i in range(len(diff)):
+        #     if test_y[i] and diff.loc[i][1] > 0:
+        #         tmp += 1
+        #     elif not test_y[i] and diff.loc[i][1] < 0:
+        #         tmp += 1
+        # print(tmp/len(test_y))
         diff_1 = (diff[test_y == 1][1] > 0).sum()
         diff_0 = (diff[test_y == 0][1] < 0).sum()
         degcount = (diff_1 + diff_0) / len(test_y)
         diff_1 = diff[test_y == 1][1].sum()
         diff_0 = -diff[test_y == 0][1].sum()
         degrate = (diff_1 + diff_0) / len(test_y)
-        print(degcount, degrate)
         return degcount, degrate
+
 
 if __name__ == "__main__":
     args = get_args()
