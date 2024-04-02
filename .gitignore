@@ -1,7 +1,7 @@
 .idea
 *.npy
-data/
-model/
+data
+model
 try.py
 log
 photo
