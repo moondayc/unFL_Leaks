@@ -1,5 +1,11 @@
 .idea
 *.npy
+data/accident
+data/adult
+data/adult_without
+data/insta_la
+data/insta_ny
+data/MNIST
 model
 try.py
 log
