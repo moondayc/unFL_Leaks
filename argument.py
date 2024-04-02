@@ -3,16 +3,17 @@ import argparse
 
 def get_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument("-data", "--dataset_name", default="nmist",
-                        choices=["nmist"],
+    parser.add_argument("-data", "--dataset_name", default="mnist",
+                        choices=["mnist", "adult", "accident", "insta_ny", "insta_la"],
                         help="the training dataset")
     # 初始模型结构和攻击模型结构
     parser.add_argument("-om", "--original_model_name", default="lenet",
-                        choice=["DT", "lenet"])  # 原始模型的类别
-    parser.add_argument("-am", "--attack_model_name", default="DT",
-                        choices=['DT', 'MLP', 'LR', 'RF'], help="attack model")  # 攻击模型的类别
+                        choices=["LR",  "LR_without",
+                                 "lenet", "simpleCNN", ])  # 原始模型的类别
+    parser.add_argument("-am", "--attack_model_name", default="MLP",
+                        choices=['DT', 'MLP', 'LR', 'RF', "LR_without"], help="attack model")  # 攻击模型的类别
     # ------- 本地模型训练参数
-    parser.add_argument("-batch", "--local_batch_size", default=20,
+    parser.add_argument("-batch", "--local_batch_size", default=100,
                         help="number of batches in machine learning.")
     parser.add_argument('-epoch', '--local_epoch', default=20,
                         help="epochs of client-side local training")

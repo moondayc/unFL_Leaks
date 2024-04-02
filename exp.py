@@ -8,6 +8,7 @@ from multiprocessing import Pool
 import numpy as np
 import pandas as pd
 import torch.utils.data
+from sklearn import preprocessing
 from tqdm import tqdm
 from FL import FederatedTrainer
 from Model import LeNet
@@ -41,7 +42,6 @@ class Exp:
         # TODO：便于控制中间模型模型训练
         self.begin, self.end = 0, 1
 
-
     def load_data(self):
         self.logger.info('loading data')
         self.logger.info('loaded data')
@@ -55,7 +55,7 @@ class ModelTrainer(Exp):
         if not os.path.exists(self.initial_path):
             os.makedirs(self.initial_path)
             self.logger.info("生成模型目录: {} ".format(self.initial_path))
-        path = 'log/trainer_{}_{}_{}/'.format(self.dataset_name, self.original_model_name, self.attack_model_name)
+        path = 'log/trainer_{}_{}/'.format(self.dataset_name, self.original_model_name)
         if not os.path.exists(path):
             os.makedirs(path)
         file_handler = logging.FileHandler(path + '{}.log'.format(self.current_time))
@@ -66,20 +66,19 @@ class ModelTrainer(Exp):
         self.load_data()
         self.logger.info("begin = {}, end = {}".format(self.begin, self.end))
 
-        # self.model = determining_original_model(self.original_model_name)
-        self.shadow_train_data_paths = "data/slice/shadow_train_data_{}.npy"
-        self.shadow_train_label_paths = "data/slice/shadow_train_label_{}.npy"
-        self.shadow_test_data_paths = "data/slice/shadow_test_data_{}.npy"
-        self.shadow_test_label_paths = "data/slice/shadow_test_label_{}.npy"
-        self.shadow_all_test_path = ["data/slice/shadow_test_data_{}.npy",
-                                     "data/slice/shadow_test_label_{}.npy"]
+        self.shadow_train_data_paths = "data/slice/{}/shadow_train_data_{{}}.npy".format(self.dataset_name)
+        self.shadow_train_label_paths = "data/slice/{}/shadow_train_label_{{}}.npy".format(self.dataset_name)
+        self.shadow_test_data_paths = "data/slice/{}/shadow_test_data_{{}}.npy".format(self.dataset_name)
+        self.shadow_test_label_paths = "data/slice/{}/shadow_test_label_{{}}.npy".format(self.dataset_name)
+        self.shadow_all_test_path = ["data/slice/{}/shadow_test_data_{{}}.npy".format(self.dataset_name),
+                                     "data/slice/{}/shadow_test_label_{{}}.npy".format(self.dataset_name)]
         # target数据路径
-        self.target_train_data_paths = "data/slice/target_train_data_{}.npy"
-        self.target_train_label_paths = "data/slice/target_train_label_{}.npy"
-        self.target_test_data_paths = "data/slice/target_test_data_{}.npy"
-        self.target_test_label_paths = "data/slice/target_test_label_{}.npy"
-        self.target_all_test_path = ["data/slice/target_test_data_{}.npy",
-                                     "data/slice/target_test_label_{}.npy"]
+        self.target_train_data_paths = "data/slice/{}/target_train_data_{{}}.npy".format(self.dataset_name)
+        self.target_train_label_paths = "data/slice/{}/target_train_label_{{}}.npy".format(self.dataset_name)
+        self.target_test_data_paths = "data/slice/{}/target_test_data_{{}}.npy".format(self.dataset_name)
+        self.target_test_label_paths = "data/slice/{}/target_test_label_{{}}.npy".format(self.dataset_name)
+        self.target_all_test_path = ["data/slice/{}/target_test_data_{{}}.npy".format(self.dataset_name),
+                                     "data/slice/{}/target_test_label_{{}}.npy".format(self.dataset_name)]
         # 模型路径
 
         self.shadow_initial_model_path0 = "shadow_initial_parameters.npy"
@@ -99,7 +98,7 @@ class ModelTrainer(Exp):
         self.target_participants_id = {}
         self.target_unlearned_ids = {}
         # shadow数据路径
-        self.model = determining_original_model(self.original_model_name)
+        self.model = determining_original_model(self.original_model_name, self.dataset_name)
         self.get_shadow_models(self.round_number)  # 训练多轮shadow模型
         self.get_target_models(self.round_number)  # 训练target模型
 
@@ -113,6 +112,9 @@ class ModelTrainer(Exp):
             self.shadow_path = self.initial_shadow_path + str(i) + "/"
             if not os.path.exists(self.shadow_path):
                 os.makedirs(self.shadow_path)
+            else:
+                self.clear_directory(self.shadow_path)
+            self.logger.info("shadow模型文件保存在：{}".format(self.shadow_path))
             self.shadow_initial_model_path = self.shadow_path + self.shadow_initial_model_path0
             self.shadow_original_model_path = self.shadow_path + self.shadow_original_model_path0
             self.shadow_unlearning_model_path = self.shadow_path + self.shadow_unlearning_model_path0
@@ -126,6 +128,8 @@ class ModelTrainer(Exp):
                 f.write(str(self.shadow_negative_id[i]))
                 f.write("\n")
                 f.write(str(self.shadow_participants_id[i]))
+                f.write("\n")
+                f.write("uid = " + str(self.shadow_unlearned_ids[i]))
 
     def get_target_models(self, n):
         self.initial_target_path = self.initial_path + "target_models/"
@@ -137,7 +141,9 @@ class ModelTrainer(Exp):
             self.target_path = self.initial_target_path + str(i) + "/"
             if not os.path.exists(self.target_path):
                 os.makedirs(self.target_path)
-            print(self.target_path)
+            else:
+                self.clear_directory(self.target_path)
+            self.logger.info("target模型文件保存在：{}".format(self.target_path))
             self.target_initial_model_path = self.target_path + self.target_initial_model_path0
             self.target_original_model_path = self.target_path + self.target_original_model_path0
             self.target_unlearning_model_path = self.target_path + self.target_unlearning_model_path0
@@ -149,18 +155,33 @@ class ModelTrainer(Exp):
             self.logger.info("target: 第 {i} 轮 反向数据客户端id = {ids}".format(i=i, ids=self.target_negative_id[i]))
             self.training_target_model(i)
             with open(self.target_path + "negative_id.txt", "w") as f:
-                f.write(str(self.shadow_negative_id[i]))
+                f.write(str(self.target_negative_id[i]))
                 f.write("\n")
-                f.write(str(self.shadow_participants_id[i]))
+                f.write(str(self.target_participants_id[i]))
+                f.write("\n")
+                f.write("uid = " + str(self.target_unlearned_ids[i]))
+
+    def clear_directory(self, directory):
+        for filename in os.listdir(directory):
+            file_path = os.path.join(directory, filename)
+            if os.path.isfile(file_path):
+                os.remove(file_path)
 
     def training_shadow_model(self, n):  # 训练shadow模型
         initial_parameters = {}
-        if not initial_parameters:
-            for key, var in self.model.state_dict().items():
-                initial_parameters[key] = var.clone()
+        if self.original_model_name in ['lenet', 'simpleCNN']:
+            if not initial_parameters:
+                for key, var in self.model.state_dict().items():
+                    initial_parameters[key] = var.clone()
+        elif self.original_model_name in ['LR', "LR_without"]:
+            if not initial_parameters:
+                for key, var in self.model.state_dict().items():
+                    initial_parameters[key] = var
+        else:
+            raise "exp 初始化中没有这个模型"
         np.save(self.shadow_initial_model_path, initial_parameters)
         self.logger.info("shadow {}：全局变量初始化完成".format(n))
-        ftrainer = FederatedTrainer(self.shadow_participants_id[n], self.original_model_name,
+        ftrainer = FederatedTrainer(self.shadow_participants_id[n], self.original_model_name, self.dataset_name,
                                     self.shadow_initial_model_path, self.decimal_place,
                                     "shadow")
         data_path = [self.shadow_train_data_paths, self.shadow_train_label_paths, self.shadow_test_data_paths,
@@ -185,13 +206,20 @@ class ModelTrainer(Exp):
     def training_target_model(self, j):
         initial_parameters = {}
         self.model.initialize_parameters()  # 模型参数随机化
-        if not initial_parameters:
-            for key, var in self.model.state_dict().items():  # 此时的self.model是经过训练的
-                initial_parameters[key] = var.clone()
+        if self.original_model_name in ['lenet', 'simpleCNN']:
+            if not initial_parameters:
+                for key, var in self.model.state_dict().items():
+                    initial_parameters[key] = var.clone()
+        elif self.original_model_name in ['LR', "LR_without"]:
+            if not initial_parameters:
+                for key, var in self.model.state_dict().items():
+                    initial_parameters[key] = var
+        else:
+            raise "training_target_model 初始化没有该模型"
         np.save(self.target_initial_model_path, initial_parameters)
         self.logger.info("target 全局变量初始化完成")
         self.logger.info("开始训练target模型......")
-        ttrainer = FederatedTrainer(self.target_participants_id[j], self.original_model_name,
+        ttrainer = FederatedTrainer(self.target_participants_id[j], self.original_model_name, self.dataset_name,
                                     self.target_initial_model_path, self.decimal_place,
                                     "target")
         data_path = [self.target_train_data_paths, self.target_train_label_paths, self.target_test_data_paths,
@@ -214,54 +242,67 @@ class ModelTrainer(Exp):
         self.logger.info('target:模型训练完成')
 
 
-
 class AttackModelTrainer(Exp):
     def __init__(self, args):
         super(AttackModelTrainer, self).__init__(args)
+        for self.end in range(1, 11):
+            tmp_n = self.end - self.begin
+            logging.basicConfig(level=logging.DEBUG)
+            self.logger = logging.getLogger("Attacker")
+            if not os.path.exists(self.initial_path):
+                os.makedirs(self.initial_path)
+                self.logger.info("生成模型目录: {} ".format(self.initial_path))
+            path = 'log/attacker_{}_{}_{}/'.format(self.dataset_name, self.original_model_name, self.attack_model_name)
+            if not os.path.exists(path):
+                os.makedirs(path)
+            file_handler = logging.FileHandler(path + '{}_{}.log'.format(tmp_n, self.current_time))
+            file_handler.setLevel(logging.DEBUG)
+            self.logger.addHandler(file_handler)
 
-        logging.basicConfig(level=logging.DEBUG)
-        self.logger = logging.getLogger("Attacker")
-        if not os.path.exists(self.initial_path):
-            os.makedirs(self.initial_path)
-            self.logger.info("生成模型目录: {} ".format(self.initial_path))
-        path = 'log/attacker_{}_{}_{}/'.format(self.dataset_name, self.original_model_name, self.attack_model_name)
-        if not os.path.exists(path):
-            os.makedirs(path)
-        file_handler = logging.FileHandler(path + '{}.log'.format(self.current_time))
-        file_handler.setLevel(logging.DEBUG)
-        self.logger.addHandler(file_handler)
-        self.logger.info(args)
-        self.logger.info("Experiment Start!".format())
-        self.load_data()
-        tmp_n = self.end - self.begin
-        self.logger.info("初始模型个数: {}".format(tmp_n))  # TODO：tmp_n 要用于记录参与的训练初始模型数
-        self.logger.info("begin = {}, end = {}".format(self.begin, self.end))
+            self.logger.info(args)
+            self.logger.info("Experiment Start!".format())
+            self.load_data()
 
-        self.shadow_train_data_paths = "data/slice/shadow_train_data_{}.npy"
-        self.target_train_data_paths = "data/slice/target_train_data_{}.npy"
+            self.logger.info("初始模型个数: {}".format(tmp_n))  # TODO：tmp_n 要用于记录参与的训练初始模型数
+            self.logger.info("begin = {}, end = {}".format(self.begin, self.end))
 
-        self.original_model_path = "shadow_original_model.npy"
-        attacker_path = self.initial_path + "{}/".format(self.attack_model_name)
-        self.original_attack_model_path = attacker_path + "original_{{}}_{}_attacker.npy".format(tmp_n)
-        self.attack_model_path = attacker_path + "{{}}_{}_attacker.npy".format(tmp_n)
+            self.shadow_train_data_paths = "data/slice/{}/shadow_train_data_{{}}.npy".format(self.dataset_name)
+            self.target_train_data_paths = "data/slice/{}/target_train_data_{{}}.npy".format(self.dataset_name)
 
+            self.original_model_path = "shadow_original_model.npy"
+            attacker_path = self.initial_path + "{}/".format(self.attack_model_name)
+            if not os.path.exists(attacker_path):
+                os.makedirs(attacker_path)
+            self.original_attack_model_path = attacker_path + "original_{{}}_{}_attacker.npy".format(tmp_n)
+            self.attack_model_path = attacker_path + "{{}}_{}_attacker.npy".format(tmp_n)
 
-        # 不考虑数据删除场景
-        base_x, base_y = self.construct_base_dataset(self.begin, self.end, "shadow")  # 构造训练攻击模型的数据集
-        self.original_attack_model = self.training_attack_model(base_x, base_y, 0)  # 训练攻击模型
+            # 不考虑数据删除场景
+            base_x, base_y = self.construct_base_dataset(self.begin, self.end, "shadow")  # 构造训练攻击模型的数据集
+            self.original_attack_model = self.training_attack_model(base_x, base_y, 0)  # 训练攻击模型
+            test_base_x, test_base_y = self.construct_base_dataset(self.begin, self.end, "target")  # 构造攻击模型的测试集
+            self.evaluate_attack_model(test_base_x, test_base_y, 0)
+            # data = np.concatenate([base_x, test_base_x])
+            # scaler = preprocessing.StandardScaler().fit(data)
+            # with open('data/{}/{}_{}_attacker_scaler.pkl'.format(self.dataset_name, "base", self.original_model_name),
+            #           'wb') as file:
+            #     pickle.dump(scaler, file)
 
-        test_base_x, test_base_y = self.construct_base_dataset(self.begin, self.end, "target")  # 构造攻击模型的测试集
-        self.evaluate_attack_model(test_base_x, test_base_y, 0)
-        # 考虑数据删除场景
-        x, y = self.construct_diff_dataset(self.begin, self.end, "shadow")  # 构造训练攻击模型的数据集
-        self.attack_model = self.training_attack_model(x, y, 1)  # 训练攻击模型
-        test__x, test_y = self.construct_diff_dataset(self.begin, self.end, "target")
-        self.evaluate_attack_model(test__x, test_y, 1)
+            # 考虑数据删除场景
+            x, y = self.construct_diff_dataset(self.begin, self.end, "shadow")  # 构造训练攻击模型的数据集
+            self.attack_model = self.training_attack_model(x, y, 1)  # 训练攻击模型
+            test_x, test_y = self.construct_diff_dataset(self.begin, self.end, "target")
+            # self.evaluate_attack_model(x, y, 1)
+            self.evaluate_attack_model(test_x, test_y, 1)
+            # data = np.concatenate([x, test_x])
+            # scaler = preprocessing.StandardScaler().fit(data)
+            # with open('data/{}/{}_{}_attacker_scaler.pkl'.format(self.dataset_name, "new", self.original_model_name),
+            #           'wb') as file:
+            #     pickle.dump(scaler, file)
 
-        # 计算degcount, degrate
-        degcount, degrate = self.calculate_DegCount_and_DegRate(test_base_x, test_base_y, self.original_attack_model,
-                                                                test__x, test_y, self.attack_model)
-        self.logger.info("degcount = {} , degrate = {}".format(degcount, degrate))
+            # 计算degcount, degrate
+            degcount, degrate = self.calculate_DegCount_and_DegRate(test_base_x, test_base_y, self.original_attack_model,
+                                                                    test_x, test_y, self.attack_model)
+            self.logger.info("degcount = {} , degrate = {}".format(degcount, degrate))
 
     def construct_base_dataset(self, begin, end, flag):
         # flag :["shadow", "target"]
@@ -273,14 +314,16 @@ class AttackModelTrainer(Exp):
             model_path, _, unid, negative_id = self.get_path(initial_path)
             positive_data_path = self.shadow_train_data_paths.format(
                 unid) if flag == "shadow" else self.target_train_data_paths.format(unid)
+            #print("model_path={}, data_path={}".format(model_path, positive_data_path))
             feature = self.get_model_output(model_path, positive_data_path).tolist()
             features.append(feature)
             label = [1] * len(feature)
             labels.append(label)
             # 构造反向数据集
-            negitive_data_path = self.shadow_train_data_paths.format(
+            negative_data_path = self.shadow_train_data_paths.format(
                 negative_id) if flag == "shadow" else self.target_train_data_paths.format(negative_id)
-            feature = self.get_model_output(model_path, negitive_data_path).tolist()
+            feature = self.get_model_output(model_path, negative_data_path).tolist()
+            # print("model_path={}, data_path={}".format(model_path, negative_data_path))
             features.append(feature)
             label = [0] * len(feature)
             labels.append(label)
@@ -299,14 +342,17 @@ class AttackModelTrainer(Exp):
             model_path, un_model_path, unid, negative_id = self.get_path(initial_path)
             positive_data_path = self.shadow_train_data_paths.format(
                 unid) if flag == "shadow" else self.target_train_data_paths.format(unid)
+            # print("model_path={}, un_model_path={}, \n data_path={}".format(model_path, un_model_path, positive_data_path))
             feature = self.get_differential_data(model_path, un_model_path, positive_data_path).tolist()
             features.append(feature)
             label = [1] * len(feature)
             labels.append(label)
             # 构造反向数据集
-            negitive_data_path = self.shadow_train_data_paths.format(
+            negative_data_path = self.shadow_train_data_paths.format(
                 negative_id) if flag == "shadow" else self.target_train_data_paths.format(negative_id)
-            feature = self.get_differential_data(model_path, un_model_path, negitive_data_path).tolist()
+            # print("model_path={}, un_model_path={}, \n data_path={}".format(model_path, un_model_path,
+            #                                                                 negative_data_path))
+            feature = self.get_differential_data(model_path, un_model_path, negative_data_path).tolist()
             features.append(feature)
             label = [0] * len(feature)
             labels.append(label)
@@ -327,15 +373,23 @@ class AttackModelTrainer(Exp):
     def get_differential_data(self, model_path, unlearned_path, data_path):
         original_output = self.get_model_output(model_path, data_path)
         unlearned_output = self.get_model_output(unlearned_path, data_path)
-        diff_output = unlearned_output - original_output
+        # diff_output = original_output - unlearned_output  # DD
+        # print("----------------------------------")
+        # print(diff_output)
+        diff_output = []
+        for o, u in zip(original_output, unlearned_output):
+            diff_output.append(((o - u) ** 2).tolist())
+        diff_output = torch.tensor(diff_output)
+        # print("----------------------------------")
+        # print(diff_output)
         return diff_output
 
     def get_model_output(self, model_path, data_path):
         data = np.load(data_path, allow_pickle=True)
-        model = determining_original_model(self.original_model_name)
+        model = determining_original_model(self.original_model_name, self.dataset_name)
         model_parameter = np.load(model_path, allow_pickle=True).item()
         model.load_state_dict(model_parameter)
-        data = torch.Tensor(data).unsqueeze(1)
+        # data = torch.Tensor(data).unsqueeze(1)
         feature = model(data)
         return feature
 
@@ -343,6 +397,7 @@ class AttackModelTrainer(Exp):
         model_flag = "考虑删除数据删除场景" if flag else "不考虑数据删除场景"
         attack_model_path = self.attack_model_path if flag else self.original_attack_model_path
         self.logger.info("{}, 开始训练攻击模型......".format(model_flag))
+        # situation = "new" if flag else "base"
         attack_model = determine_attack_model(self.attack_model_name)
         attack_model_path = attack_model_path.format(self.attack_model_name)
         attack_model.train_model(x, y, attack_model_path)
@@ -359,7 +414,7 @@ class AttackModelTrainer(Exp):
 
     def calculate_DegCount_and_DegRate(self, test_base_x, test_base_y, base_model, test_x, test_y, model):
         assert test_base_y == test_y, "两个攻击模型的测试数据必须相同"
-        print(test_base_y == test_y)
+        # print(test_base_y == test_y)
         test_base_x, test_base_y = np.array(test_base_x), np.array(test_base_y)
         test_x, test_y = np.array(test_x), np.array(test_y)
 
@@ -371,12 +426,12 @@ class AttackModelTrainer(Exp):
 
         diff = model_pred - base_model_pred
         tmp = 0
-        # for i in range(len(diff)):
-        #     if test_y[i] and diff.loc[i][1] > 0:
-        #         tmp += 1
-        #     elif not test_y[i] and diff.loc[i][1] < 0:
-        #         tmp += 1
-        # print(tmp/len(test_y))
+        for i in range(len(diff)):
+            if test_y[i] and diff.loc[i][1] > 0:
+                tmp += 1
+            elif not test_y[i] and diff.loc[i][1] < 0:
+                tmp += 1
+        print(tmp / len(test_y))
         diff_1 = (diff[test_y == 1][1] > 0).sum()
         diff_0 = (diff[test_y == 0][1] < 0).sum()
         degcount = (diff_1 + diff_0) / len(test_y)
@@ -387,5 +442,4 @@ class AttackModelTrainer(Exp):
 
 
 if __name__ == "__main__":
-    args = get_args()
-    AttackModelTrainer(args)
+    pass

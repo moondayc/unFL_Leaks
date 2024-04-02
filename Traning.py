@@ -44,14 +44,14 @@ class ClientTrainer:
         for epoch in range(self.local_epoch):
             for data, label in self.trainloader:
             # for data, label in tqdm(self.trainloader,
-            #                         desc=f'Client{self.cid} training epoch {epoch + 1}/{self.local_epoch}'):
+            #                        desc=f'Client{self.cid} training epoch {epoch + 1}/{self.local_epoch}'):
                 data, label = data.to(self.dev), label.to(self.dev)
                 self.opti.zero_grad()
                 preds = self.net(data)
                 loss = self.loss_fun(preds, label.long())
                 loss.backward()
                 self.opti.step()
-        torch.cuda.empty_cache()
+        # torch.cuda.empty_cache()
         return self.net.state_dict()
 
     def evaluate(self, global_parameters):

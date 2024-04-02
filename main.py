@@ -1,12 +1,15 @@
 import time
 
+from sklearn.linear_model._cd_fast import ConvergenceWarning
+
 from argument import get_args
 from exp import ModelTrainer, AttackModelTrainer
-
+import warnings
+warnings.filterwarnings("ignore", category=ConvergenceWarning)
 
 def main(args):
     ModelTrainer(args)
-    # AttackModelTrainer(args)
+    AttackModelTrainer(args)
 
 
 if __name__ == "__main__":

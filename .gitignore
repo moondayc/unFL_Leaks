@@ -1,7 +1,8 @@
 .idea
-data
 *.npy
 model
 try.py
 log
 photo
+*.zip
+datasets

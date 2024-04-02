@@ -25,10 +25,11 @@ class SecAgg:
         return average
 
 if __name__ == "__main__":
-    Pro = SecAgg(1)
-    a = [0.100000001, 0.9]
-    b = [0.123456098, 0.12]
-    Pro.add(a)
-    Pro.add(b)
-    print(Pro.average())
+    pass
+    # Pro = SecAgg(1)
+    # a = [0.100000001, 0.9]
+    # b = [0.123456098, 0.12]
+    # Pro.add(a)
+    # Pro.add(b)
+    # print(Pro.average())
 
