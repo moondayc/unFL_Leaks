@@ -1,14 +1,9 @@
 .idea
 *.npy
-data/accident
-data/adult
-data/adult_without
-data/insta_la
-data/insta_ny
-data/MNIST
-model
+data/
+model/
 try.py
 log
 photo
 *.zip
-datasets
+datasets/
