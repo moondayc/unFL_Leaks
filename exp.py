@@ -104,7 +104,7 @@ class ModelTrainer(Exp):
 
     def get_shadow_models(self, n):
         self.initial_shadow_path = self.initial_path + "shadow_models/"
-        if not self.initial_shadow_path:
+        if not os.path.exists(self.initial_shadow_path):
             os.makedirs(self.initial_shadow_path)
             self.logger.info("成功生成目录: {}".format(self.initial_shadow_path))
         # for i in tqdm(range(n), desc="shadow training round"): TODO:便于控制中间模型训练
@@ -133,7 +133,7 @@ class ModelTrainer(Exp):
 
     def get_target_models(self, n):
         self.initial_target_path = self.initial_path + "target_models/"
-        if not self.initial_target_path:
+        if not os.path.exists(self.initial_target_path):
             os.makedirs(self.initial_target_path)
             self.logger.info("成功生成目录: {}".format(self.initial_target_path))
         # for i in tqdm(range(n), desc="target training round"):TODO:便于控制中间模型训练
