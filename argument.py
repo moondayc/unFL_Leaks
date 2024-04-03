@@ -13,22 +13,22 @@ def get_args():
     parser.add_argument("-am", "--attack_model_name", default="MLP",
                         choices=['DT', 'MLP', 'LR', 'RF', "LR_without"], help="attack model")  # 攻击模型的类别
     # ------- 本地模型训练参数
-    parser.add_argument("-batch", "--local_batch_size", default=10,
+    parser.add_argument("-batch", "--local_batch_size", default=32,
                         help="number of batches in machine learning.")
-    parser.add_argument('-epoch', '--local_epoch', default=2,
+    parser.add_argument('-epoch', '--local_epoch', default=30,
                         help="epochs of client-side local training")
 
     # ------- 联邦学习相关参数
-    parser.add_argument("-cn", "--client_number", default=5,
+    parser.add_argument("-cn", "--client_number", default=10,
                         help="number of clients participating in one round of aggregation")
-    parser.add_argument("-acn", "--all_client_number", default=10,
+    parser.add_argument("-acn", "--all_client_number", default=20,
                         help="number of all clients participating in aggregation")
     parser.add_argument('-max', "--max_aggregation_round", default=10,
                         help="the maximum aggregation count")
     parser.add_argument('-d', "--decimal_places", default=8)
 
     # ----- 训练的相关参数
-    parser.add_argument('--round_number', type=int, default=2,
+    parser.add_argument('--round_number', type=int, default=10,
                         help="Number of round of original and shadow model training")
     # parser.add_argument('--shadow_set_size', type=int, default=2000,
     #                     help="Number of shadow model training samples")
