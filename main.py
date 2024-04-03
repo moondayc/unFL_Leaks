@@ -8,7 +8,7 @@ import warnings
 warnings.filterwarnings("ignore", category=ConvergenceWarning)
 
 def main(args):
-    ModelTrainer(args)
+    ModelTrainer(args)  # 原始模型训练
     AttackModelTrainer(args)
 
 

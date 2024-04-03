@@ -209,7 +209,7 @@ class FederatedTrainer:
                 raise "在联邦学习训练中没有这个模型"
             # aver_acc = sum([result[i][1] for i in range(participant_number)]) / participant_number
             # print("第{}次聚合准确率平均值：{}".format(k + 1, aver_acc))
-            # 定义聚合协议
+            # 定义聚合协议， 精确到小数点后8位的聚合协议
             Pro = SecAgg(8)
             # 变形聚合
             shape = {}

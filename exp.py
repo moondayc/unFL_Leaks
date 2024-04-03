@@ -43,6 +43,7 @@ class Exp:
         self.begin, self.end = 0, 1
 
     def load_data(self):
+        # 数据集已经下载到data/slice
         self.logger.info('loading data')
         self.logger.info('loaded data')
 
@@ -103,12 +104,17 @@ class ModelTrainer(Exp):
         self.get_target_models(self.round_number)  # 训练target模型
 
     def get_shadow_models(self, n):
+        """
+        :param n:  shadow 模型的个数
+        :return: 训练出来的模型保存在
+        self.shadow_initial_model_path， self.shadow_original_model_path，self.shadow_unlearning_model_path
+        """
         self.initial_shadow_path = self.initial_path + "shadow_models/"
         if not os.path.exists(self.initial_shadow_path):
             os.makedirs(self.initial_shadow_path)
             self.logger.info("成功生成目录: {}".format(self.initial_shadow_path))
-        # for i in tqdm(range(n), desc="shadow training round"): TODO:便于控制中间模型训练
-        for i in tqdm(range(self.begin, self.end), desc="shadow training round"):
+        for i in tqdm(range(n), desc="shadow training round"):
+        # for i in tqdm(range(self.begin, self.end), desc="shadow training round"): #便于控制中间模型训练
             self.shadow_path = self.initial_shadow_path + str(i) + "/"
             if not os.path.exists(self.shadow_path):
                 os.makedirs(self.shadow_path)
@@ -136,8 +142,8 @@ class ModelTrainer(Exp):
         if not os.path.exists(self.initial_target_path):
             os.makedirs(self.initial_target_path)
             self.logger.info("成功生成目录: {}".format(self.initial_target_path))
-        # for i in tqdm(range(n), desc="target training round"):TODO:便于控制中间模型训练
-        for i in tqdm(range(self.begin, self.end), desc="target training round"):
+        for i in tqdm(range(n), desc="target training round"):
+        # for i in tqdm(range(self.begin, self.end), desc="target training round"): # 便于控制中间模型训练
             self.target_path = self.initial_target_path + str(i) + "/"
             if not os.path.exists(self.target_path):
                 os.makedirs(self.target_path)

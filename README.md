@@ -1,17 +1,20 @@
-# 模拟联邦学习
+# 成员推理攻击
+成员攻击方式出自“When Machine Unlearning Jeopardizes Privacy”[1] 
 
-# 成员攻击
+参考代码：https://github.com/MinChen00/UnlearningLeaks/tree/main
+
+[1] M. Chen, Z. Zhang, T. Wang, M. Backes, M. Humbert, Y. Zhang, When Machine Unlearning Jeopardizes Privacy, in: Acm Conference On Computer And Communications Security, 2021: pp. 896–911. https://doi.org/10.1145/3460120.3484756.
+
+# 模拟联邦学习
+该代码在[1]的基础上模型训练的方式使用模拟联邦学习的框架，遗忘的方式使用的是去掉某个客户端然后重新训练
 
 # 运行 
-main.py中
+直接执行main.py中
 ModelTrainer(args)  执行原始模型和对比模型训练
 AttackModelTrainer(args)    训练攻击模型
 
-# 参数
-参数修改在argument.py
-
-# 数据
+# 文件介绍
+log  日志
+model/数据集名字/原始模型名字 是训练的影子模型
 训练数据在data/slice
-
-训练模型在model/原始模型类型/攻击模型
-model/原始模型类型/shadow_models 是训练的影子模型
+参数设置在argument.py
