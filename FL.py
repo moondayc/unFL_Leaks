@@ -32,10 +32,10 @@ def ClientTraining0(args):
     test_label_name = args["test_label"]
     global_parameters = np.load(global_parameters_path, allow_pickle=True).item()
     # print("client{}起始参数的一个数：{}".format(client, list(global_parameters.values())[0][0][0][0]))
-    # traindata0 = np.load("data/train_data_part_{}.npy".format(client))  # TODO：训练数据路径
+    # traindata0 = np.load("data/train_data_part_{}.npy".format(client))  # 训练数据路径
     traindata0 = np.load(train_data_name.format(client))
     # traindata0 = torch.Tensor(traindata0).unsqueeze(1)
-    # trainlabels0 = np.load("data/train_labels_part_{}.npy".format(client))  # TODO：训练数据标签路径
+    # trainlabels0 = np.load("data/train_labels_part_{}.npy".format(client))  # 训练数据标签路径
     trainlabels0 = np.load(train_label_name.format(client))
     trainset0 = torch.utils.data.TensorDataset(torch.Tensor(traindata0), torch.Tensor(trainlabels0))
     trainloader = torch.utils.data.DataLoader(trainset0, batch_size=local_batch_size, shuffle=True)
@@ -235,7 +235,7 @@ class FederatedTrainer:
             else:
                 raise "初始模型类型错误"
             acc_line.append(acc)
-            print("第{}轮平均后的准确率: {}".format(k, acc))
+            print("第{}轮聚合后的准确率: {}".format(k+1, acc))
             # 确定最新的参数
             # if len(acc_line) >= 2 and acc_line[-2] > 80 and abs(acc_line[-2] - acc_line[-1]) <= 10 ** (-self.decimal_place):
             if len(acc_line) >= 2 and acc_line[-2] > 80 and acc_line[-2] > acc_line[-1]:

@@ -9,8 +9,13 @@ from sklearn import preprocessing
 from torch.utils.data import TensorDataset, DataLoader
 from torchvision import transforms
 
-dataset_name = "insta_la"
+dataset_name = "mnist"
+# ["accident", "adult", "adult_without","insta_la", "insta_ny", "mnist"]
+if not os.path.exists("data/slice"):
+    os.makedirs("data/slice")
 if dataset_name == "mnist":
+    if not os.path.exists("data/slice/mnist"):
+        os.makedirs("data/slice/mnist")
     transform = transforms.Compose([
         transforms.ToTensor(),
         transforms.Normalize((0.5,), (0.5,))
