@@ -21,6 +21,9 @@
 
 # 文件介绍
 log  日志
+
 model/数据集名字/原始模型名字 是训练的影子模型
+
 训练数据在data/slice
+
 参数设置在argument.py
