@@ -11,6 +11,8 @@ from torchvision import transforms
 
 dataset_name = "mnist"
 # ["accident", "adult", "adult_without","insta_la", "insta_ny", "mnist"]
+if not os.path.exists("data"):
+    os.makedirs("data")
 if not os.path.exists("data/slice"):
     os.makedirs("data/slice")
 if dataset_name == "mnist":
