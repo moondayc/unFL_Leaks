@@ -8,7 +8,7 @@ class SecAgg:
         self.dim = 0
         self.number_of_client = 0
 
-    def add(self, data):
+    def add(self, data): #模拟服务器接受客户端模型过程
         data = np.array([int(i*10**self.decimal_places) / (10**self.decimal_places) for i in data])
         if not self.dim:
             self.dim = len(data)
@@ -16,7 +16,7 @@ class SecAgg:
         self.agg += data
         self.number_of_client += 1
 
-    def summary(self):
+    def summary(self):  # 模拟聚合过程
         return self.agg
 
     def average(self):
