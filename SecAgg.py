@@ -1,5 +1,7 @@
 import numpy as np
-
+"""
+    模拟安全聚合过程
+"""
 
 class SecAgg:
     def __init__(self, decimal_places):
@@ -8,7 +10,7 @@ class SecAgg:
         self.dim = 0
         self.number_of_client = 0
 
-    def add(self, data): #模拟服务器接受客户端模型过程
+    def add(self, data): #模拟服务器接收客户端模型过程
         data = np.array([int(i*10**self.decimal_places) / (10**self.decimal_places) for i in data])
         if not self.dim:
             self.dim = len(data)
