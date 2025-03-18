@@ -14,7 +14,9 @@ from torch.nn import Module
 import torch
 from torch import nn
 import torch.nn.functional as F
-
+"""
+    客户端和攻击的模型选择
+"""
 
 class LeNet(nn.Module):
     def __init__(self):
