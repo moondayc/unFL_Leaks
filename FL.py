@@ -136,6 +136,7 @@ def all_evaluate1(new_parameter, model, test_path, participants, uid):
 
 
 def net_to_vector(net_state_dict, model_name):
+    #网络转换成可聚合向量，用于服务器端的聚合
     if model_name in ["lenet", 'simpleCNN']:
         flat_tensors = torch.cat([t.flatten() for t in net_state_dict.values()])
         net_shape = {name: list(s.shape) for name, s in net_state_dict.items()}
