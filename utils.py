@@ -4,6 +4,7 @@ from Model import LeNet, LR, DT, MLP, RF, LR_2, LR_2_without_scaler, LR_without_
 
 
 def determining_original_model(original_name, dataset_name):
+    # 选择客户端训练的模型结构
     if original_name == "lenet":
         return LeNet()
     elif original_name == 'LR':
@@ -16,6 +17,7 @@ def determining_original_model(original_name, dataset_name):
         raise Exception("invalid original model")
 
 def determine_attack_model(attack_model_name):
+    #  # 选择攻击模型的模型结构
     if attack_model_name == 'LR':
         return LR_2()
     elif attack_model_name == 'LR_without':
