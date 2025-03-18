@@ -9,8 +9,8 @@ warnings.filterwarnings("ignore", category=ConvergenceWarning)
 
 def main(args):
     ModelTrainer(args)  # 原始模型训练
-    AttackModelTrainer(args)
-
+    AttackModelTrainer(args)  # 训练攻击模型
+ 
 
 if __name__ == "__main__":
     time1 = time.time()
