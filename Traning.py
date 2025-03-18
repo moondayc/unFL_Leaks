@@ -9,7 +9,9 @@ from torchvision import transforms
 from tqdm import tqdm
 
 from Model import LeNet
-
+"""
+    客户端模型训练
+"""
 
 class ClientTrainer:
     def __init__(self, cid, trainloader, testloader, dev, net, opti, local_epoch=10, local_batchsize=128,
