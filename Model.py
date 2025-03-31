@@ -51,7 +51,24 @@ class LeNet(nn.Module):
         x = torch.relu(self.fc2(x))
         x = self.fc3(x)
         return x
+        
+class MobileNetV2(nn.Module):
+    def __init__(self, num_classes=10):
+        super(MobileNetV2, self).__init__()
+        self.mobilenet = models.mobilenet_v2()
+        self.mobilenet.classifier[1] = nn.Linear(self.mobilenet.last_channel, num_classes)
 
+    def forward(self, x):
+        return self.mobilenet(x)
+
+class ResNet18(nn.Module):
+    def __init__(self, num_classes=10):
+        super(ResNet18, self).__init__()
+        self.resnet = torchvision.models.resnet18(weights='ResNet18_Weights.DEFAULT')  # 加载预训练模型
+        self.resnet.fc = nn.Linear(self.resnet.fc.in_features, num_classes)  # 修改输出层
+
+    def forward(self, x):
+        return self.resnet(x)
 
 class SimpleCNN(nn.Module):
     def __init__(self, in_dim=1, out_dim=10):
