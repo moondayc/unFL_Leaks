@@ -6,7 +6,7 @@
 [1] M. Chen, Z. Zhang, T. Wang, M. Backes, M. Humbert, Y. Zhang, When Machine Unlearning Jeopardizes Privacy, in: Acm Conference On Computer And Communications Security, 2021: pp. 896–911. https://doi.org/10.1145/3460120.3484756.
 
 # 模拟联邦学习
-该代码在[1]的基础上模型训练的方式使用模拟联邦学习的框架，遗忘的方式使用的是去掉某个客户端然后重新训练
+该代码在[1]的基础上模型训练的方式使用模拟联邦学习的框架，遗忘的方式使用的是去掉某个客户端然后重新训练（Machine Unlearning）
 
 # 运行
 1. 在 GetData.py 中修改dataset_name
