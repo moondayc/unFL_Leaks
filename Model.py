@@ -92,7 +92,33 @@ class SimpleCNN(nn.Module):
         # output = F.log_softmax(x, dim=1)
         return x
 
+class CNNModel(nn.Module):
+    def __init__(self):
+        super(CNNModel, self).__init__()
+        # 第一层卷积：输入通道=1，输出通道=30，卷积核大小=3x3
+        self.conv1 = nn.Conv2d(in_channels=1, out_channels=30, kernel_size=3, stride=1, padding=1)
+        # 第二层卷积：输入通道=30，输出通道=50，卷积核大小=3x3
+        self.conv2 = nn.Conv2d(in_channels=30, out_channels=50, kernel_size=3, stride=1, padding=1)
+        # 最大池化层
+        self.pool = nn.MaxPool2d(kernel_size=2, stride=2)
+        # 全连接层：从 50*7*7 (Feature Map 展平后) 到 100
+        self.fc1 = nn.Linear(50 * 7 * 7, 100)
+        # 输出层：从 100 到 10（类别数）
+        self.fc2 = nn.Linear(100, 10)
 
+    def forward(self, x):
+        # 卷积1 -> ReLU -> 最大池化
+        x = self.pool(F.relu(self.conv1(x)))
+        # 卷积2 -> ReLU -> 最大池化
+        x = self.pool(F.relu(self.conv2(x)))
+        # 展平操作
+        x = x.view(-1, 50 * 7 * 7)
+        # 全连接1 -> ReLU
+        x = F.relu(self.fc1(x))
+        # 输出层 -> Softmax
+        x = self.fc2(x)
+        return x
+        
 class CNNCifar(nn.Module):
     def __init__(self, n, args):
         super(CNNCifar, self).__init__()
