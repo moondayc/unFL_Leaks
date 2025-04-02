@@ -1,0 +1,30 @@
+name: "CodeQL Analysis"
+
+on:
+  push:
+    branches: [main]  # 仅在 main 分支 push 代码时触发
+  pull_request:
+    branches: [main]  # 在 PR 提交时触发
+  schedule:
+    - cron: '0 12 * * 1'  # 每周一 UTC 12:00 运行一次
+
+jobs:
+  analyze:
+    name: Analyze Code with CodeQL
+    runs-on: ubuntu-latest
+    permissions:
+      security-events: write
+      actions: read
+      contents: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: python  # 适用于 Python 代码库
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v3
